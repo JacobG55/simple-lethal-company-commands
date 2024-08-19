@@ -1,7 +1,6 @@
 ﻿using GameNetcodeStuff;
 using HarmonyLib;
 using SimpleCommands.Components;
-using UnityEngine;
 
 namespace SimpleCommands.Patches
 {

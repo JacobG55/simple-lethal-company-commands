@@ -2,7 +2,10 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using JLL.API;
 using LethalLib.Modules;
+using Simple_Commands.Commands.Compatability;
+using Simple_Commands.Patches;
 using SimpleCommands.Commands;
 using SimpleCommands.Managers;
 using SimpleCommands.Patches;
@@ -12,8 +15,9 @@ using UnityEngine;
 namespace SimpleCommands
 {
     [BepInPlugin(modGUID, modName, modVersion)]
-    [BepInDependency("evaisa.lethallib")]
     [BepInDependency("JacobG5.JLL")]
+    [BepInDependency("evaisa.lethallib")]
+    [BepInDependency("mrov.WeatherRegistry", BepInDependency.DependencyFlags.SoftDependency)]
     public class SimpleCommandsBase : BaseUnityPlugin
     {
         private const string modGUID = "JacobG5.SimpleCommands";
@@ -53,6 +57,7 @@ namespace SimpleCommands
             harmony.PatchAll(typeof(HUDManagerPatch));
             harmony.PatchAll(typeof(PlayerControllerBPatch));
             harmony.PatchAll(typeof(StartOfRoundPatch));
+            harmony.PatchAll(typeof(TerminalPatch));
 
             RegisterBaseCommands();
         }
@@ -91,7 +96,13 @@ namespace SimpleCommands
             SimpleCommand.register(new ItemCommand());
             SimpleCommand.register(new ItemsCommand());
             SimpleCommand.register(new TeleportCommand());
+            SimpleCommand.register(new TerminalCommand());
             // Spawn Monster w/ Raycast
+
+            if (JCompatabilityHelper.IsModLoaded.WeatherRegistry)
+            {
+                SimpleCommand.register(new WeatherRegistryCommand());
+            }
         }
     }
 }

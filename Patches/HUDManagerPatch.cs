@@ -2,7 +2,6 @@
 using HarmonyLib;
 using SimpleCommands.Commands;
 using SimpleCommands.Managers;
-using Unity.Netcode;
 
 namespace SimpleCommands.Patches
 {

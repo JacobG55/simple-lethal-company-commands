@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using System;
 using System.Collections.Generic;
 
 namespace SimpleCommands.Commands

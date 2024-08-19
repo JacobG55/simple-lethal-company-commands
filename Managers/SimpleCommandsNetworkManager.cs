@@ -1,9 +1,7 @@
 ﻿using GameNetcodeStuff;
 using JLL.API;
 using SimpleCommands.Commands;
-using System.Reflection;
 using Unity.Netcode;
-using UnityEngine;
 
 namespace SimpleCommands.Managers
 {
@@ -39,7 +37,6 @@ namespace SimpleCommands.Managers
                 if (command.permissionRequired && SimpleCommandsBase.hostOnly.Value)
                 {
                     SendErrorTipClientRpc(playerId, "Permission Denied", "Only the host is allowed to execute commands due to the server's config.", true);
-                    SimpleCommandsBase.Instance.mls.LogInfo("Command can only be performed by the host.");
                     return;
                 }
             }

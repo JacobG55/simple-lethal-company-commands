@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using LethalLib.Modules;
 using System.Collections;
 using UnityEngine;
 
@@ -183,8 +182,6 @@ namespace SimpleCommands.Commands
             */
 
             yield return new WaitForSeconds(3f);
-
-            player.DropAllHeldItems();
 
             /*
                 if ((bool)Object.FindObjectOfType<AudioReverbPresets>())

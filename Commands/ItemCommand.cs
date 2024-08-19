@@ -2,7 +2,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.Netcode;
-using System.Linq;
 
 namespace SimpleCommands.Commands
 {
