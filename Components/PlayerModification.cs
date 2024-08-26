@@ -12,7 +12,7 @@ namespace SimpleCommands.Components
 
         public void Start()
         {
-            if (gameObject.TryGetComponent<PlayerControllerB>(out PlayerControllerB player))
+            if (gameObject.TryGetComponent(out PlayerControllerB player))
             {
                 this.player = player;
             }
@@ -30,10 +30,6 @@ namespace SimpleCommands.Components
             if (infinateSprint)
             {
                 player.sprintMeter = 1f;
-            }
-            if (invulnerable)
-            {
-                player.health++;
             }
         }
     }

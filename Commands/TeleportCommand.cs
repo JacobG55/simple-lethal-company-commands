@@ -15,7 +15,7 @@ namespace SimpleCommands.Commands
             instructions.Add("[/cmd] [x] [y] [z] - Teleports self");
             instructions.Add("[/cmd] [target] [x] [y] [z]");
 
-            tagInfo.Add("'Instant':\nTeleport instantly skipping teleport animation.");
+            tagInfo.Add("'Animate':\nTeleport instantly skipping teleport animation.");
         }
 
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
@@ -28,7 +28,7 @@ namespace SimpleCommands.Commands
             string name2;
             PlayerControllerB? player2;
 
-            bool instant = parameters.isFlagged("instant");
+            bool instant = !parameters.isFlagged("animate");
             success = false;
 
             switch (parameters.Count()) {

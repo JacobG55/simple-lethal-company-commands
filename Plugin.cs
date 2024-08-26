@@ -22,7 +22,7 @@ namespace SimpleCommands
     {
         private const string modGUID = "JacobG5.SimpleCommands";
         private const string modName = "SimpleCommands";
-        private const string modVersion = "1.0.0";
+        private const string modVersion = "1.1.2";
 
         private readonly Harmony harmony = new Harmony(modGUID);
 

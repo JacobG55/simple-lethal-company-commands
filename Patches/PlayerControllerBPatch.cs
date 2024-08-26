@@ -18,11 +18,23 @@ namespace SimpleCommands.Patches
         [HarmonyPrefix]
         public static bool patchKillPlayer(PlayerControllerB __instance)
         {
-            if (__instance.TryGetComponent<PlayerModification>(out PlayerModification playerMod)) 
+            return CheckInvulnerability(__instance);
+        }
+
+        [HarmonyPatch("DamagePlayer")]
+        [HarmonyPrefix]
+        public static bool patchDamagePlayer(PlayerControllerB __instance)
+        {
+            return CheckInvulnerability(__instance);
+        }
+
+        public static bool CheckInvulnerability(PlayerControllerB player)
+        {
+            if (player.TryGetComponent(out PlayerModification playerMod))
             {
                 if (playerMod.invulnerable)
                 {
-                    __instance.health += 100;
+                    player.health = 100;
                     return false;
                 }
             }

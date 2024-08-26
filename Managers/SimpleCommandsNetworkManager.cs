@@ -11,10 +11,7 @@ namespace SimpleCommands.Managers
 
         public void Awake()
         {
-            if (Instance == null)
-            {
-                Instance = this;
-            }
+            Instance = this;
         }
 
         public bool test()
