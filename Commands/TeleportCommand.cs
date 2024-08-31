@@ -1,4 +1,5 @@
 ﻿using GameNetcodeStuff;
+using JLL.API.LevelProperties;
 using System.Collections;
 using UnityEngine;
 
@@ -9,9 +10,9 @@ namespace SimpleCommands.Commands
         public TeleportCommand() : base("tp", "teleports players") 
         {
             instructions.Add("[/cmd] [destination] - Teleports Self");
-            instructions.Add("[/cmd] (ship | main) - Teleports Self");
+            instructions.Add("[/cmd] (ship | main | exit{#}) - Teleports Self");
             instructions.Add("[/cmd] [target] [destination]");
-            instructions.Add("[/cmd] [target] (ship | main)");
+            instructions.Add("[/cmd] [target] (ship | main | exit{#})");
             instructions.Add("[/cmd] [x] [y] [z] - Teleports self");
             instructions.Add("[/cmd] [target] [x] [y] [z]");
 
@@ -67,7 +68,7 @@ namespace SimpleCommands.Commands
 
                     if (player2 == null)
                     {
-                        if (GetSpecialLocation(name1, out Vector3 pos, out destinationName, player1))
+                        if (GetSpecialLocation(name2, out Vector3 pos, out destinationName, player1))
                         {
                             teleportedUser = player1.playerUsername;
                             TeleportPlayer(player1, pos, instant);
@@ -130,12 +131,28 @@ namespace SimpleCommands.Commands
                 formalName = "your Autopilot Ship";
                 return true;
             }
+
+            int entrance = -1;
+
             if (name == "main")
             {
-                pos = RoundManager.FindMainEntrancePosition(true, !target.isInsideFactory);
-                if (pos != Vector3.zero)
+                entrance = 0;
+            }
+            else if (name.StartsWith("exit"))
+            {
+                if (int.TryParse(name.Substring(4), out int num)) 
                 {
-                    formalName = "the Main Entrance";
+                    entrance = num;
+                }
+            }
+
+            if (entrance >= 0)
+            {
+                Vector3? entrancePosition = JLevelPropertyRegistry.GetEntranceTeleportLocation(entrance, !target.isInsideFactory, true);
+                if (entrancePosition != null)
+                {
+                    pos = entrancePosition.Value;
+                    formalName = entrance == 0 ? "the Main Entrance" : $"Fire Exit #{entrance}";
                     return true;
                 }
             }

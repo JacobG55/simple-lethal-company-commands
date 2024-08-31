@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.Netcode;
+using LethalLib.Modules;
 
 namespace SimpleCommands.Commands
 {
@@ -52,20 +53,39 @@ namespace SimpleCommands.Commands
                     return MissingTerminal();
                 }
 
-                List<Item> spawnables = RoundManager.Instance.playersManager.allItemsList.itemsList;
-                foreach (Item item in spawnables)
+                List<Item> foundMatches = new List<Item>();
+                foreach (Item item in RoundManager.Instance.playersManager.allItemsList.itemsList)
                 {
-                    if (item.itemName.ToLower().Replace(' ', '_') == itemName.ToLower())
+                    if (item.itemName.ToLower().Replace(' ', '_').StartsWith(itemName.ToLower()))
                     {
-                        GameObject obj = GrabbableObject.Instantiate(item.spawnPrefab, effected.transform.position, Quaternion.identity);
-                        GrabbableObject spawned = obj.GetComponent<GrabbableObject>();
-                        spawned.GetComponent<GrabbableObject>().fallTime = 0f;
-                        spawned.GetComponent<NetworkObject>().Spawn();
-
-                        success = true;
-                        return "Gave " + effected.playerUsername + " " + item.itemName + ".";
+                        foundMatches.Add(item);
                     }
                 }
+
+                if (foundMatches.Count > 0)
+                {
+                    int smallest = 0;
+                    for (int i = 0; i < foundMatches.Count; i++)
+                    {
+                        if (foundMatches[i].itemName.Length < foundMatches[smallest].itemName.Length)
+                        {
+                            smallest = i;
+                        }
+                    }
+
+                    GameObject obj = GrabbableObject.Instantiate(foundMatches[smallest].spawnPrefab, effected.transform.position, Quaternion.identity);
+                    GrabbableObject spawned = obj.GetComponent<GrabbableObject>();
+                    spawned.fallTime = 0f;
+                    if (foundMatches[smallest].isScrap)
+                    {
+                        spawned.SetScrapValue(Random.Range(foundMatches[smallest].minValue, foundMatches[smallest].maxValue));
+                    }
+                    spawned.GetComponent<NetworkObject>().Spawn();
+
+                    success = true;
+                    return "Gave " + effected.playerUsername + " " + foundMatches[smallest].itemName + ".";
+                }
+
                 return "Unknown Item: " + itemName;
             }
             return "";
@@ -76,10 +96,11 @@ namespace SimpleCommands.Commands
     {
         public ItemsCommand() : base("items", "lists items") 
         { 
-            overrideShowOutput = true; 
+            overrideShowOutput = true;
             permissionRequired = false;
 
             instructions.Add("[/cmd] - lists item ids");
+            instructions.Add("[/cmd] [page]");
 
             tagInfo.Add("'Store':\nFilters to show store items");
             tagInfo.Add("'Scrap':\nFilters to show scrap items");

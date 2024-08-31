@@ -1,5 +1,6 @@
 ﻿using GameNetcodeStuff;
 using JLL.API;
+using Simple_Commands.Commands;
 using SimpleCommands.Commands;
 using Unity.Netcode;
 
@@ -12,11 +13,8 @@ namespace SimpleCommands.Managers
         public void Awake()
         {
             Instance = this;
-        }
 
-        public bool test()
-        {
-            return true;
+            SimplePrefabs.RegisterBasePrefabs();
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -73,7 +71,7 @@ namespace SimpleCommands.Managers
 
                     if (result != null && result != "")
                     {
-                        SimpleCommandsBase.Instance.mls.LogInfo($"\nSuccess: {success}\nResult:\n{result}");
+                        SimpleCommandsBase.Instance.mls.LogInfo($"\nSuccess: {success}\nResult: {result}");
                         if (success)
                         {
                             if (hudManager.IsHost || hudManager.IsServer)

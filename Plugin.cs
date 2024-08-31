@@ -4,6 +4,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using JLL.API;
 using LethalLib.Modules;
+using Simple_Commands.Commands;
 using Simple_Commands.Commands.Compatability;
 using Simple_Commands.Patches;
 using SimpleCommands.Commands;
@@ -22,7 +23,7 @@ namespace SimpleCommands
     {
         private const string modGUID = "JacobG5.SimpleCommands";
         private const string modName = "SimpleCommands";
-        private const string modVersion = "1.1.2";
+        private const string modVersion = "1.2.0";
 
         private readonly Harmony harmony = new Harmony(modGUID);
 
@@ -43,14 +44,12 @@ namespace SimpleCommands
                 Instance = this;
             }
 
-            NetcodeRequired();
-
             hostOnly = Config.Bind("Main", "hostOnly", true, "Restricts commands to only being executed by the host.");
             hideDefault = Config.Bind("Main", "hideDefault", false, "Hides command feedback by default. ('hide' flag now shows command feedback.)");
             commandPrefix = Config.Bind("Main", "commandPrefix", "/", "Prefix for SimpleCommands");
 
             mls = BepInEx.Logging.Logger.CreateLogSource(modGUID);
-
+            NetcodeRequired(mls);
             networkObject = NetworkPrefabs.CreateNetworkPrefab("SimpleCommandsNetworkManager");
             networkObject.AddComponent<SimpleCommandsNetworkManager>();
 
@@ -62,21 +61,29 @@ namespace SimpleCommands
             RegisterBaseCommands();
         }
 
-        private void NetcodeRequired()
+        private static void NetcodeRequired(ManualLogSource logSource)
         {
             var types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (var type in types)
             {
-                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                foreach (var method in methods)
+                try
                 {
-                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
-                    if (attributes.Length > 0)
+                    var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                    foreach (var method in methods)
                     {
-                        method.Invoke(null, null);
+                        var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                        if (attributes.Length > 0)
+                        {
+                            method.Invoke(null, null);
+                        }
                     }
                 }
+                catch
+                {
+                    logSource.LogInfo("Skipping Netcode Class");
+                }
             }
+            logSource.LogInfo("Netcode Successfully Patched!");
         }
 
         private void RegisterBaseCommands()
@@ -90,13 +97,16 @@ namespace SimpleCommands
             SimpleCommand.register(new HealCommand());
             SimpleCommand.register(new InvulnerabilityCommand());
             SimpleCommand.register(new InfiniteSprintCommand());
-            SimpleCommand.register(new ChargeCommand());
-            SimpleCommand.register(new ExtendCommand());
-
             SimpleCommand.register(new ItemCommand());
             SimpleCommand.register(new ItemsCommand());
+
             SimpleCommand.register(new TeleportCommand());
             SimpleCommand.register(new TerminalCommand());
+            SimpleCommand.register(new SimplePrefabs.PrefabCommand());
+            SimpleCommand.register(new SimplePrefabs.PrefabsCommand());
+            SimpleCommand.register(new ChargeCommand());
+
+            SimpleCommand.register(new ExtendCommand());
             // Spawn Monster w/ Raycast
 
             if (JCompatabilityHelper.IsModLoaded.WeatherRegistry)

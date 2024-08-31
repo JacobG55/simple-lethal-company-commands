@@ -14,6 +14,8 @@ namespace SimpleCommands.Commands
         public List<string> instructions = new List<string>();
         public List<string> tagInfo = new List<string>();
 
+        private static Terminal Terminal;
+
         public SimpleCommand(string name, string description)
         {
             this.name = name;
@@ -83,7 +85,7 @@ namespace SimpleCommands.Commands
             }
 
             simpleCommands.Add(command);
-            SimpleCommandsBase.Instance.mls.LogInfo("Registered Simple Command: " + GetPrefix() + command.name);
+            SimpleCommandsBase.Instance.mls.LogInfo($"Registered Simple Command: {GetPrefix()} {command.name}");
         }
 
         public static bool tryParseCommand(string cmd, out SimpleCommand? command, out CommandParameters? parameters)
@@ -138,22 +140,39 @@ namespace SimpleCommands.Commands
 
         public static PlayerControllerB? GetPlayer(string name)
         {
-            PlayerControllerB[] players = RoundManager.Instance.playersManager.allPlayerScripts;
-
-            foreach (PlayerControllerB player in players)
+            List<PlayerControllerB> playersMatches = new List<PlayerControllerB>();
+            foreach (PlayerControllerB player in RoundManager.Instance.playersManager.allPlayerScripts)
             {
-                if (player.playerUsername.ToLower().Replace(' ', '_') == name.ToLower().Replace(' ', '_'))
+                if (player.playerUsername.ToLower().Replace(' ', '_').StartsWith(name.ToLower().Replace(' ', '_')))
                 {
-                    return player;
+                    playersMatches.Add(player);
                 }
+            }
+            if (playersMatches.Count > 0)
+            {
+                int smallest = 0;
+                for (int i = 0; i < playersMatches.Count; i++)
+                {
+                    if (playersMatches[i].name.Length < playersMatches[smallest].name.Length)
+                    {
+                        smallest = i;
+                    }
+                }
+                return playersMatches[smallest];
             }
             return null;
         }
 
         public static Terminal GetTerminal()
         {
-            Terminal terminal = UnityEngine.Object.FindObjectOfType<Terminal>();
-            return terminal;
+            if (Terminal)
+            {
+                return Terminal;
+            }
+            else
+            {
+                return Terminal = UnityEngine.Object.FindObjectOfType<Terminal>();
+            }
         }
 
         public static void ClearChat()

@@ -30,6 +30,11 @@ namespace SimpleCommands.Commands
         {
             success = false;
 
+            if (!StartOfRound.Instance.inShipPhase)
+            {
+                return "Can not change weather mid round!";
+            }
+
             if (parameters.Count() >= 1)
             {
                 string type = parameters.GetLowerCase();
