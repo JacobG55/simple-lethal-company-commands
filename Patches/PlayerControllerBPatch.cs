@@ -30,13 +30,10 @@ namespace SimpleCommands.Patches
 
         public static bool CheckInvulnerability(PlayerControllerB player)
         {
-            if (player.TryGetComponent(out PlayerModification playerMod))
+            if (player.GetComponent<PlayerModification>().invulnerable)
             {
-                if (playerMod.invulnerable)
-                {
-                    player.health = 100;
-                    return false;
-                }
+                player.health = 100;
+                return false;
             }
             return true;
         }

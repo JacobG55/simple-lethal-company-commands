@@ -12,16 +12,11 @@ namespace SimpleCommands.Components
 
         public void Start()
         {
-            if (gameObject.TryGetComponent(out PlayerControllerB player))
-            {
-                this.player = player;
-            }
+            player = gameObject.GetComponent<PlayerControllerB>();
         }
 
         public void Update()
         {
-            if (player == null) return;
-
             ApplyUpdate();
         }
 

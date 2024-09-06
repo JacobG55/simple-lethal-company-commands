@@ -66,10 +66,10 @@ namespace SimpleCommands.Commands
             return "Missing Terminal.";
         }
 
-        private static List<SimpleCommand> simpleCommands = new List<SimpleCommand>();
+        private static readonly List<SimpleCommand> SimpleCommands = new List<SimpleCommand>();
         public static List<SimpleCommand> GetCommands()
         {
-            return simpleCommands;
+            return SimpleCommands;
         }
 
         public static string GetPrefix()
@@ -77,14 +77,14 @@ namespace SimpleCommands.Commands
             return SimpleCommandsBase.commandPrefix.Value;
         }
 
-        public static void register(SimpleCommand command)
+        public static void Register(SimpleCommand command)
         {
             if (!command.overrideShowOutput)
             {
                 command.tagInfo.Add("'Hide':\nHides command chat output.");
             }
 
-            simpleCommands.Add(command);
+            SimpleCommands.Add(command);
             SimpleCommandsBase.Instance.mls.LogInfo($"Registered Simple Command: {GetPrefix()} {command.name}");
         }
 
@@ -128,7 +128,7 @@ namespace SimpleCommands.Commands
 
         public static SimpleCommand? tryGetCommand(string name)
         {
-            foreach (SimpleCommand simpleCommand in simpleCommands)
+            foreach (SimpleCommand simpleCommand in SimpleCommands)
             {
                 if (simpleCommand.name.ToLower() == name.ToLower())
                 {

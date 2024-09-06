@@ -2,7 +2,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.Netcode;
-using LethalLib.Modules;
 
 namespace SimpleCommands.Commands
 {
@@ -83,7 +82,7 @@ namespace SimpleCommands.Commands
                     spawned.GetComponent<NetworkObject>().Spawn();
 
                     success = true;
-                    return "Gave " + effected.playerUsername + " " + foundMatches[smallest].itemName + ".";
+                    return $"Gave {effected.playerUsername} {foundMatches[smallest].itemName}.";
                 }
 
                 return "Unknown Item: " + itemName;

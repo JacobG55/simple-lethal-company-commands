@@ -23,7 +23,7 @@ namespace SimpleCommands
     {
         private const string modGUID = "JacobG5.SimpleCommands";
         private const string modName = "SimpleCommands";
-        private const string modVersion = "1.2.0";
+        private const string modVersion = "1.2.2";
 
         private readonly Harmony harmony = new Harmony(modGUID);
 
@@ -88,30 +88,30 @@ namespace SimpleCommands
 
         private void RegisterBaseCommands()
         {
-            SimpleCommand.register(new HelpCommand());
-            SimpleCommand.register(new ClearCommand());
-            SimpleCommand.register(new ListCommand());
-            SimpleCommand.register(new PayCommand());
-            SimpleCommand.register(new WeatherCommand());
+            SimpleCommand.Register(new HelpCommand());
+            SimpleCommand.Register(new ClearCommand());
+            SimpleCommand.Register(new ListCommand());
+            SimpleCommand.Register(new PayCommand());
+            SimpleCommand.Register(new WeatherCommand());
 
-            SimpleCommand.register(new HealCommand());
-            SimpleCommand.register(new InvulnerabilityCommand());
-            SimpleCommand.register(new InfiniteSprintCommand());
-            SimpleCommand.register(new ItemCommand());
-            SimpleCommand.register(new ItemsCommand());
+            SimpleCommand.Register(new HealCommand());
+            SimpleCommand.Register(new InvulnerabilityCommand());
+            SimpleCommand.Register(new InfiniteSprintCommand());
+            SimpleCommand.Register(new ItemCommand());
+            SimpleCommand.Register(new ItemsCommand());
 
-            SimpleCommand.register(new TeleportCommand());
-            SimpleCommand.register(new TerminalCommand());
-            SimpleCommand.register(new SimplePrefabs.PrefabCommand());
-            SimpleCommand.register(new SimplePrefabs.PrefabsCommand());
-            SimpleCommand.register(new ChargeCommand());
+            SimpleCommand.Register(new TeleportCommand());
+            SimpleCommand.Register(new TerminalCommand());
+            SimpleCommand.Register(new SimplePrefabs.PrefabCommand());
+            SimpleCommand.Register(new SimplePrefabs.PrefabsCommand());
+            SimpleCommand.Register(new ChargeCommand());
 
-            SimpleCommand.register(new ExtendCommand());
+            SimpleCommand.Register(new ExtendCommand());
             // Spawn Monster w/ Raycast
 
             if (JCompatabilityHelper.IsModLoaded.WeatherRegistry)
             {
-                SimpleCommand.register(new WeatherRegistryCommand());
+                SimpleCommand.Register(new WeatherRegistryCommand());
             }
         }
     }
