@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
+using JLL.API;
+using JLL.API.LevelProperties;
 
 namespace Simple_Commands.Commands
 {
@@ -32,12 +34,12 @@ namespace Simple_Commands.Commands
             if (registeredBasePrefabs) return;
             registeredBasePrefabs = true;
 
-            SimpleCommandsBase.Instance.mls.LogInfo("Registering Base Game Prefabs.");
+            SimpleCommandsBase.LogInfo("Registering Base Game Prefabs.", JLogLevel.Debuging);
 
-            Terminal terminal = Object.FindObjectOfType<Terminal>();
+            Terminal terminal = JLevelPropertyRegistry.GetTerminal();
             RegisterSimplePrefab("Cruiser", new CruiserPrefab { prefab = terminal.buyableVehicles[0].vehiclePrefab, spawnOffset = new Vector3(0, 14, 0) });
 
-            SimpleCommandsBase.Instance.mls.LogInfo($"Vanilla Map Hazards: {terminal.moonsCatalogueList[1].spawnableMapObjects.Length}");
+            SimpleCommandsBase.LogInfo($"Vanilla Map Hazards: {terminal.moonsCatalogueList[1].spawnableMapObjects.Length}", JLogLevel.Debuging);
 
             foreach (var mapObject in terminal.moonsCatalogueList[1].spawnableMapObjects)
             {
@@ -51,7 +53,7 @@ namespace Simple_Commands.Commands
                 RegisterSimplePrefab(name, new SimplePrefab { prefab = mapObject.prefabToSpawn });
             }
 
-            SimpleCommandsBase.Instance.mls.LogInfo($"LethalLib Map Hazards: {MapObjects.mapObjects.Count}");
+            SimpleCommandsBase.LogInfo($"LethalLib Map Hazards: {MapObjects.mapObjects.Count}", JLogLevel.Debuging);
 
             foreach (var mapObject in MapObjects.mapObjects)
             {
@@ -63,30 +65,43 @@ namespace Simple_Commands.Commands
         {
             public GameObject prefab;
             public Vector3 spawnOffset = Vector3.zero;
-            public virtual GameObject SpawnPrefab(Vector3 pos, Quaternion rot)
+
+            public void SpawnPrefab(Vector3 pos, Quaternion rot)
             {
-                GameObject obj = GameObject.Instantiate(prefab);
-                obj.transform.position = pos;
-                obj.transform.rotation = rot;
-                if (obj.TryGetComponent(out NetworkObject networkObject))
+                if (prefab.GetComponent<NetworkObject>())
                 {
-                    networkObject.Spawn();
+                    if (RoundManager.Instance.IsServer || RoundManager.Instance.IsClient)
+                    {
+                        GameObject obj = GameObject.Instantiate(prefab);
+                        SetPrefabProperties(ref obj, pos, rot);
+                        obj.GetComponent<NetworkObject>().Spawn();
+                        return;
+                    }
                 }
-                return obj;
+                else
+                {
+                    GameObject obj = GameObject.Instantiate(prefab);
+                    SetPrefabProperties(ref obj, pos, rot);
+                }
+            }
+
+            public virtual void SetPrefabProperties(ref GameObject prefab, Vector3 pos, Quaternion rot)
+            {
+                prefab.transform.position = pos;
+                prefab.transform.rotation = rot;
             }
         }
 
         public class CruiserPrefab : SimplePrefab
         {
-            public override GameObject SpawnPrefab(Vector3 pos, Quaternion rot)
+            public override void SetPrefabProperties(ref GameObject prefab, Vector3 pos, Quaternion rot)
             {
-                GameObject obj = base.SpawnPrefab(pos, rot);
-                if (obj.TryGetComponent(out VehicleController vehicleController))
+                base.SetPrefabProperties(ref prefab, pos, rot);
+                if (prefab.TryGetComponent(out VehicleController vehicleController))
                 {
                     vehicleController.hasBeenSpawned = true;
                     vehicleController.inDropshipAnimation = false;
                 }
-                return obj;
             }
         }
 

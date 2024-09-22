@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using Unity.Netcode;
 using UnityEngine;
+using JLL.API;
 
 namespace SimpleCommands.Patches
 {
@@ -15,7 +16,8 @@ namespace SimpleCommands.Patches
             {
                 GameObject obj = GameObject.Instantiate(SimpleCommandsBase.Instance.networkObject);
                 obj.GetComponent<NetworkObject>().Spawn();
-                SimpleCommandsBase.Instance.mls.LogInfo("Simple Command Manager Initialized.");
+
+                SimpleCommandsBase.LogInfo("Simple Command Manager Initialized.", JLogLevel.Debuging);
             }
         }
     }

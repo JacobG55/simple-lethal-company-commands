@@ -23,13 +23,13 @@ namespace SimpleCommands
     {
         private const string modGUID = "JacobG5.SimpleCommands";
         private const string modName = "SimpleCommands";
-        private const string modVersion = "1.2.2";
+        private const string modVersion = "1.3.0";
 
         private readonly Harmony harmony = new Harmony(modGUID);
 
         public static SimpleCommandsBase Instance;
 
-        public ManualLogSource mls;
+        private ManualLogSource mls;
 
         public GameObject networkObject;
 
@@ -95,23 +95,34 @@ namespace SimpleCommands
             SimpleCommand.Register(new WeatherCommand());
 
             SimpleCommand.Register(new HealCommand());
+            SimpleCommand.Register(new DamageCommand());
             SimpleCommand.Register(new InvulnerabilityCommand());
             SimpleCommand.Register(new InfiniteSprintCommand());
+            SimpleCommand.Register(new TeleportCommand());
+
             SimpleCommand.Register(new ItemCommand());
             SimpleCommand.Register(new ItemsCommand());
-
-            SimpleCommand.Register(new TeleportCommand());
             SimpleCommand.Register(new TerminalCommand());
             SimpleCommand.Register(new SimplePrefabs.PrefabCommand());
             SimpleCommand.Register(new SimplePrefabs.PrefabsCommand());
-            SimpleCommand.Register(new ChargeCommand());
 
+            SimpleCommand.Register(new ChargeCommand());
             SimpleCommand.Register(new ExtendCommand());
+            SimpleCommand.Register(new PosCommand());
+            SimpleCommand.Register(new ExplodeCommand());
             // Spawn Monster w/ Raycast
 
             if (JCompatabilityHelper.IsModLoaded.WeatherRegistry)
             {
                 SimpleCommand.Register(new WeatherRegistryCommand());
+            }
+        }
+
+        internal static void LogInfo(string message, JLogLevel level)
+        {
+            if (JLogHelper.AcceptableLogLevel(level))
+            {
+                Instance.mls.LogInfo(message);
             }
         }
     }

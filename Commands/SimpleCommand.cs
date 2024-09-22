@@ -1,4 +1,6 @@
 ﻿using GameNetcodeStuff;
+using JLL.API;
+using JLL.API.LevelProperties;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,8 +15,6 @@ namespace SimpleCommands.Commands
         public bool overrideShowOutput = false;
         public List<string> instructions = new List<string>();
         public List<string> tagInfo = new List<string>();
-
-        private static Terminal Terminal;
 
         public SimpleCommand(string name, string description)
         {
@@ -46,22 +46,27 @@ namespace SimpleCommands.Commands
             return $"{header}\n{string.Join("\n", pageContent)}";
         }
 
-        public string UnknownPlayerException(string username)
+        public static bool IsClient(PlayerControllerB sender)
         {
-            return "\"" + username + "\" is not in this lobby.";
+            return HUDManager.Instance.localPlayer.actualClientId == sender.actualClientId;
         }
 
-        public string UnknownNumberException()
+        public static string UnknownPlayerException(string username)
+        {
+            return $"{(username == "" ? "Unknown" : $"\"{username}\"")} is not in this lobby.";
+        }
+
+        public static string UnknownNumberException()
         {
             return "A Number was not able to be parsed.";
         }
 
-        public string UnknownVectorException()
+        public static string UnknownVectorException()
         {
             return "A Position (X Y Z) was not able to be parsed.";
         }
 
-        public string MissingTerminal()
+        public static string MissingTerminal()
         {
             return "Missing Terminal.";
         }
@@ -85,7 +90,7 @@ namespace SimpleCommands.Commands
             }
 
             SimpleCommands.Add(command);
-            SimpleCommandsBase.Instance.mls.LogInfo($"Registered Simple Command: {GetPrefix()} {command.name}");
+            SimpleCommandsBase.LogInfo($"Registered Simple Command: {GetPrefix()} {command.name}", JLogLevel.Debuging);
         }
 
         public static bool tryParseCommand(string cmd, out SimpleCommand? command, out CommandParameters? parameters)
@@ -165,14 +170,7 @@ namespace SimpleCommands.Commands
 
         public static Terminal GetTerminal()
         {
-            if (Terminal)
-            {
-                return Terminal;
-            }
-            else
-            {
-                return Terminal = UnityEngine.Object.FindObjectOfType<Terminal>();
-            }
+            return JLevelPropertyRegistry.GetTerminal();
         }
 
         public static void ClearChat()

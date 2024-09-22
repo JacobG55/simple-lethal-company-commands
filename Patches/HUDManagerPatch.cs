@@ -2,6 +2,7 @@
 using HarmonyLib;
 using SimpleCommands.Commands;
 using SimpleCommands.Managers;
+using JLL.API;
 
 namespace SimpleCommands.Patches
 {
@@ -29,7 +30,7 @@ namespace SimpleCommands.Patches
                     }
                     else
                     {
-                        SimpleCommandsBase.Instance.mls.LogInfo("Sending Command Request.");
+                        SimpleCommandsBase.LogInfo("Sending Command Request.", JLogLevel.User);
                         SimpleCommandsNetworkManager.Instance.RequestCommandExecutionServerRpc(playerId, payload);
                     }
                     return false;

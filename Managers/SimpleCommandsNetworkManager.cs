@@ -20,7 +20,7 @@ namespace SimpleCommands.Managers
         [ServerRpc(RequireOwnership = false)]
         public void RequestCommandExecutionServerRpc(int playerId, string commandMessage)
         {
-            SimpleCommandsBase.Instance.mls.LogInfo("[Server] Processing Command Request.");
+            SimpleCommandsBase.LogInfo($"[Server] Processing Command Request from {StartOfRound.Instance.allPlayerScripts[playerId].playerUsername}.", JLogLevel.User);
 
             if (SimpleCommand.tryParseCommand(commandMessage, out SimpleCommand? command, out SimpleCommand.CommandParameters? parameters))
             {
@@ -48,9 +48,9 @@ namespace SimpleCommands.Managers
         private void CommandExecution(PlayerControllerB sender, string commandMessage, bool hideDefault)
         {
             HUDManager hudManager = HUDManager.Instance;
-            SimpleCommandsBase.Instance.mls.LogInfo($"Parsing: {commandMessage}");
+            SimpleCommandsBase.LogInfo($"Parsing: {commandMessage}", JLogLevel.Debuging);
 
-            bool isSender = GameNetworkManager.Instance.localPlayerController.actualClientId == sender.actualClientId;
+            bool isSender = SimpleCommand.IsClient(sender);
 
             string[] cmds = commandMessage.Split("&//=");
 
@@ -65,13 +65,13 @@ namespace SimpleCommands.Managers
                     }
 
                     string append = parameters.IsEmpty() ? "" : $"\n{parameters.asString()}";
-                    SimpleCommandsBase.Instance.mls.LogInfo($"Player: {sender.playerUsername} | Executing: {SimpleCommand.GetPrefix() + command.name}{append}");
+                    SimpleCommandsBase.LogInfo($"Player: {sender.playerUsername} | Executing: {SimpleCommand.GetPrefix() + command.name}{append}", JLogLevel.Debuging);
 
                     string result = command.Execute(sender, parameters, out bool success);
 
                     if (result != null && result != "")
                     {
-                        SimpleCommandsBase.Instance.mls.LogInfo($"\nSuccess: {success}\nResult: {result}");
+                        SimpleCommandsBase.LogInfo($"\nSuccess: {success}\nResult: {result}", JLogLevel.Debuging);
                         if (success)
                         {
                             if (hudManager.IsHost || hudManager.IsServer)
