@@ -48,7 +48,7 @@ namespace SimpleCommands.Commands
 
         public static bool IsClient(PlayerControllerB sender)
         {
-            return HUDManager.Instance.localPlayer.actualClientId == sender.actualClientId;
+            return GameNetworkManager.Instance.localPlayerController.actualClientId == sender.actualClientId;
         }
 
         public static string UnknownPlayerException(string username)
