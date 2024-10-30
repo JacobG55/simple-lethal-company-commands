@@ -48,7 +48,7 @@ namespace SimpleCommands.Commands
 
         public static bool IsClient(PlayerControllerB sender)
         {
-            return GameNetworkManager.Instance.localPlayerController.actualClientId == sender.actualClientId;
+            return sender.IsOwner;
         }
 
         public static string UnknownPlayerException(string username)
@@ -93,7 +93,7 @@ namespace SimpleCommands.Commands
             SimpleCommandsBase.LogInfo($"Registered Simple Command: {GetPrefix()} {command.name}", JLogLevel.Debuging);
         }
 
-        public static bool tryParseCommand(string cmd, out SimpleCommand? command, out CommandParameters? parameters)
+        public static bool tryParseCommand(string cmd, out SimpleCommand? command, out CommandParameters? parameters, Vector3 targetPos)
         {
             parameters = null;
 
@@ -127,7 +127,7 @@ namespace SimpleCommands.Commands
                 }
             }
 
-            parameters = new CommandParameters(parameterValues, flagValues);
+            parameters = new CommandParameters(parameterValues.ToArray(), flagValues.ToArray(), targetPos);
             return true;
         }
 
@@ -183,39 +183,53 @@ namespace SimpleCommands.Commands
 
         public class CommandParameters
         {
-            private List<string> parameters;
-            private List<string> flags;
+            private string[] parameters;
+            private string[] flags;
+            private Vector3 targetPos;
             private int place = 0;
 
-            public CommandParameters(List<string> parameters, List<string> flags)
+            public CommandParameters(string[] parameters, string[] flags, Vector3 targetPos)
             {
                 this.parameters = parameters;
                 this.flags = flags;
+                this.targetPos = targetPos + Vector3.up;
+            }
+
+            public Vector3 GetTargetPos()
+            {
+                return targetPos;
             }
 
             public bool isFlagged(string flag)
             {
-                return flags.Contains(flag.ToLower());
+                for (int i = 0; i < flags.Length; i++)
+                {
+                    if (flags[i] == flag.ToLower())
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             public bool Count(int value)
             {
-                return parameters.Count >= value;
+                return parameters.Length >= value;
             }
 
             public int Count()
             {
-                return parameters.Count;
+                return parameters.Length;
             }
 
             public bool IsEmpty()
             {
-                return parameters.Count == 0;
+                return parameters.Length == 0;
             }
 
             public string asString()
             {
-                return "parameters: [" + string.Join(", ", parameters.ToArray()) + "], flags: [" + string.Join(", ", flags.ToArray()) + "]";
+                return "parameters: [" + string.Join(", ", parameters) + "], flags: [" + string.Join(", ", flags) + "]";
             }
 
             public string GetLowerCase()
@@ -225,7 +239,7 @@ namespace SimpleCommands.Commands
 
             public string GetString()
             {
-                string value = GetStringAt(Math.Min(parameters.Count-1, place));
+                string value = GetStringAt(Math.Min(parameters.Length - 1, place));
                 place++;
                 return value;
             }
@@ -237,12 +251,12 @@ namespace SimpleCommands.Commands
 
             public string GetLast()
             {
-                return GetStringAt(parameters.Count-1);
+                return GetStringAt(parameters.Length - 1);
             }
 
             public int GetNumber()
             {
-                int value = GetNumberAt(Math.Min(parameters.Count-1, place), out bool isNumber);
+                int value = GetNumberAt(Math.Min(parameters.Length - 1, place), out bool isNumber);
                 place++;
                 return value;
             }
@@ -264,7 +278,7 @@ namespace SimpleCommands.Commands
 
             public PlayerControllerB? GetPlayer()
             {
-                PlayerControllerB? value = GetPlayerAt(Math.Min(parameters.Count - 1, place));
+                PlayerControllerB? value = GetPlayerAt(Math.Min(parameters.Length - 1, place));
                 place++;
                 return value;
             }
@@ -286,7 +300,7 @@ namespace SimpleCommands.Commands
 
             public bool GetRelativeVector(Vector3 origin, out Vector3 vector)
             {
-                bool value = GetRelativeVectorAt(Math.Min(parameters.Count - 1, place), origin, out vector);
+                bool value = GetRelativeVectorAt(Math.Min(parameters.Length - 1, place), origin, out vector);
                 place += 3;
                 return value;
             }
@@ -294,39 +308,53 @@ namespace SimpleCommands.Commands
             public bool GetRelativeVectorAt(int startIndex, Vector3 origin, out Vector3 vector)
             {
                 vector = Vector3.zero;
-                if (startIndex + 2 < parameters.Count)
+                if (startIndex + 2 < parameters.Length)
                 {
-                    int[] posNum = new int[3];
-                    bool[] posRelative = new bool[3];
+                    float[] posNum = new float[3] { 0, 0, 0 };
 
                     for (int i = 0; i < 3; i++)
                     {
                         string pos = GetStringAt(startIndex + i);
 
-                        if (pos.StartsWith("~"))
+                        if (float.TryParse(pos, out float parsed))
                         {
-                            posRelative[i] = true;
-                            pos = pos.Substring(1);
-                            if (!int.TryParse(pos, out posNum[i]))
-                            {
-                                posNum[i] = 0;
-                            }
+                            posNum[i] = parsed;
+                        }
+                        else if (GetRelative(pos, i, origin, out float output))
+                        {
+                            posNum[i] = output;
                         }
                         else
                         {
-                            posRelative[i] = false;
-                            if (!int.TryParse(pos, out posNum[i]))
-                            {
-                                return false;
-                            }
+                            return false;
                         }
                     }
 
-                    vector = new Vector3(posNum[0] + (posRelative[0] ? origin.x : 0), posNum[1] + (posRelative[1] ? origin.y : 0), posNum[2] + (posRelative[2] ? origin.z : 0));
+                    vector = new Vector3(posNum[0], posNum[1], posNum[2]);
                     return true;
                 }
-
                 return false;
+            }
+
+            private bool GetRelative(string num, int i, Vector3 origin, out float output)
+            {
+                output = 0;
+                switch (num[0])
+                {
+                    case '~':
+                        output = i switch { 0 => origin.x, 1 => origin.y, 2 => origin.z, _ => origin.magnitude };
+                        break;
+                    case '^':
+                        output = i switch { 0 => targetPos.x, 1 => targetPos.y, 2 => targetPos.z, _ => targetPos.magnitude };
+                        break;
+                    default:
+                        return false;
+                }
+                if (float.TryParse(num[1..], out float parsed))
+                {
+                    output += parsed;
+                }
+                return true;
             }
         }
     }

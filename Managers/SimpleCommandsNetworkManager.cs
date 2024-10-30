@@ -3,6 +3,7 @@ using JLL.API;
 using Simple_Commands.Commands;
 using SimpleCommands.Commands;
 using Unity.Netcode;
+using UnityEngine;
 
 namespace SimpleCommands.Managers
 {
@@ -18,11 +19,11 @@ namespace SimpleCommands.Managers
         }
 
         [ServerRpc(RequireOwnership = false)]
-        public void RequestCommandExecutionServerRpc(int playerId, string commandMessage)
+        public void RequestCommandExecutionServerRpc(int playerId, string commandMessage, Vector3 targetPos)
         {
             SimpleCommandsBase.LogInfo($"[Server] Processing Command Request from {StartOfRound.Instance.allPlayerScripts[playerId].playerUsername}.", JLogLevel.User);
 
-            if (SimpleCommand.tryParseCommand(commandMessage, out SimpleCommand? command, out SimpleCommand.CommandParameters? parameters))
+            if (SimpleCommand.tryParseCommand(commandMessage, out SimpleCommand? command, out SimpleCommand.CommandParameters? parameters, targetPos))
             {
                 if (command == null || parameters == null)
                 {
@@ -36,16 +37,16 @@ namespace SimpleCommands.Managers
                 }
             }
 
-            CommandExecutionClientRpc(playerId, commandMessage, SimpleCommandsBase.hideDefault.Value);
+            CommandExecutionClientRpc(playerId, commandMessage, SimpleCommandsBase.hideDefault.Value, targetPos);
         }
 
         [ClientRpc]
-        public void CommandExecutionClientRpc(int playerId, string commandMessage, bool hideDefault)
+        public void CommandExecutionClientRpc(int playerId, string commandMessage, bool hideDefault, Vector3 targetPos)
         {
-            CommandExecution(StartOfRound.Instance.allPlayerScripts[playerId], commandMessage, hideDefault);
+            CommandExecution(StartOfRound.Instance.allPlayerScripts[playerId], commandMessage, hideDefault, targetPos);
         }
 
-        private void CommandExecution(PlayerControllerB sender, string commandMessage, bool hideDefault)
+        private void CommandExecution(PlayerControllerB sender, string commandMessage, bool hideDefault, Vector3 targetPos)
         {
             HUDManager hudManager = HUDManager.Instance;
             SimpleCommandsBase.LogInfo($"Parsing: {commandMessage}", JLogLevel.Debuging);
@@ -57,7 +58,7 @@ namespace SimpleCommands.Managers
             foreach(string cmd in cmds)
             {
                 if (cmd == "") continue;
-                if (SimpleCommand.tryParseCommand(cmd, out SimpleCommand? command, out SimpleCommand.CommandParameters? parameters))
+                if (SimpleCommand.tryParseCommand(cmd, out SimpleCommand? command, out SimpleCommand.CommandParameters? parameters, targetPos))
                 {
                     if (command == null || parameters == null)
                     {

@@ -11,6 +11,7 @@ namespace SimpleCommands.Commands
         {
             instructions.Add("[/cmd] [item]");
             instructions.Add("[/cmd] [target] [item]");
+            instructions.Add("[/cmd] [item] [x] [y] [z]");
         }
 
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
@@ -19,21 +20,30 @@ namespace SimpleCommands.Commands
 
             if (sender.IsHost || sender.IsServer)
             {
-                PlayerControllerB effected = sender;
                 string itemName = "";
+                Vector3 spawnPos = sender.transform.position;
 
                 if (!parameters.IsEmpty())
                 {
                     string first = parameters.GetString();
 
-                    if (parameters.Count(2))
+                    if (parameters.Count() >= 4)
+                    {
+                        if (parameters.GetRelativeVector(sender.transform.position, out Vector3 pos))
+                        {
+                            itemName = first;
+                            spawnPos = pos;
+                        }
+                        else return UnknownVectorException();
+                    }
+                    else if (parameters.Count(2))
                     {
                         PlayerControllerB? player = GetPlayer(first);
                         itemName = parameters.GetString();
 
                         if (player != null)
                         {
-                            effected = player;
+                            spawnPos = player.transform.position;
                         }
                         else
                         {
@@ -72,7 +82,7 @@ namespace SimpleCommands.Commands
                         }
                     }
 
-                    GameObject obj = GrabbableObject.Instantiate(foundMatches[smallest].spawnPrefab, effected.transform.position, Quaternion.identity);
+                    GameObject obj = GrabbableObject.Instantiate(foundMatches[smallest].spawnPrefab, spawnPos, Quaternion.identity);
                     GrabbableObject spawned = obj.GetComponent<GrabbableObject>();
                     spawned.fallTime = 0f;
                     if (foundMatches[smallest].isScrap)
@@ -82,7 +92,7 @@ namespace SimpleCommands.Commands
                     spawned.GetComponent<NetworkObject>().Spawn();
 
                     success = true;
-                    return $"Gave {effected.playerUsername} {foundMatches[smallest].itemName}.";
+                    return $"Spawned {foundMatches[smallest].itemName} at {spawnPos}.";
                 }
 
                 return "Unknown Item: " + itemName;

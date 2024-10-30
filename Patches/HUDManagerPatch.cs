@@ -3,6 +3,7 @@ using HarmonyLib;
 using SimpleCommands.Commands;
 using SimpleCommands.Managers;
 using JLL.API;
+using UnityEngine;
 
 namespace SimpleCommands.Patches
 {
@@ -24,14 +25,21 @@ namespace SimpleCommands.Patches
 
                     payload = payload.Replace("&//=", "").Replace(prefix, "&//=");
 
+                    Vector3 targetPos = sender.transform.position;
+
+                    if (Physics.Raycast(new Ray(sender.gameplayCamera.transform.position, sender.gameplayCamera.transform.forward), out RaycastHit hit, 200, 1073742656))
+                    {
+                        targetPos = hit.point;
+                    }
+
                     if (sender.IsHost || sender.IsServer)
                     {
-                        SimpleCommandsNetworkManager.Instance.CommandExecutionClientRpc(playerId, payload, SimpleCommandsBase.hideDefault.Value);
+                        SimpleCommandsNetworkManager.Instance.CommandExecutionClientRpc(playerId, payload, SimpleCommandsBase.hideDefault.Value, targetPos);
                     }
                     else
                     {
                         SimpleCommandsBase.LogInfo("Sending Command Request.", JLogLevel.User);
-                        SimpleCommandsNetworkManager.Instance.RequestCommandExecutionServerRpc(playerId, payload);
+                        SimpleCommandsNetworkManager.Instance.RequestCommandExecutionServerRpc(playerId, payload, targetPos);
                     }
                     return false;
                 }

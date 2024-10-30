@@ -23,7 +23,7 @@ namespace SimpleCommands
     {
         private const string modGUID = "JacobG5.SimpleCommands";
         private const string modName = "SimpleCommands";
-        private const string modVersion = "1.3.1";
+        private const string modVersion = "1.4.0";
 
         private readonly Harmony harmony = new Harmony(modGUID);
 
@@ -49,41 +49,13 @@ namespace SimpleCommands
             commandPrefix = Config.Bind("Main", "commandPrefix", "/", "Prefix for SimpleCommands");
 
             mls = BepInEx.Logging.Logger.CreateLogSource(modGUID);
-            NetcodeRequired(mls);
+            JLL.JLL.NetcodePatch(mls, Assembly.GetExecutingAssembly().GetTypes());
             networkObject = NetworkPrefabs.CreateNetworkPrefab("SimpleCommandsNetworkManager");
             networkObject.AddComponent<SimpleCommandsNetworkManager>();
 
-            harmony.PatchAll(typeof(HUDManagerPatch));
-            harmony.PatchAll(typeof(PlayerControllerBPatch));
-            harmony.PatchAll(typeof(StartOfRoundPatch));
-            harmony.PatchAll(typeof(TerminalPatch));
+            JLL.JLL.HarmonyPatch(harmony, mls, typeof(HUDManagerPatch), typeof(PlayerControllerBPatch), typeof(StartOfRoundPatch), typeof(TerminalPatch));
 
             RegisterBaseCommands();
-        }
-
-        private static void NetcodeRequired(ManualLogSource logSource)
-        {
-            var types = Assembly.GetExecutingAssembly().GetTypes();
-            foreach (var type in types)
-            {
-                try
-                {
-                    var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                    foreach (var method in methods)
-                    {
-                        var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
-                        if (attributes.Length > 0)
-                        {
-                            method.Invoke(null, null);
-                        }
-                    }
-                }
-                catch
-                {
-                    logSource.LogInfo("Skipping Netcode Class");
-                }
-            }
-            logSource.LogInfo("Netcode Successfully Patched!");
         }
 
         private void RegisterBaseCommands()
@@ -106,11 +78,13 @@ namespace SimpleCommands
             SimpleCommand.Register(new SimplePrefabs.PrefabCommand());
             SimpleCommand.Register(new SimplePrefabs.PrefabsCommand());
 
+            SimpleCommand.Register(new SpawnCommand());
+            SimpleCommand.Register(new EnemiesCommand());
             SimpleCommand.Register(new ChargeCommand());
             SimpleCommand.Register(new ExtendCommand());
-            SimpleCommand.Register(new PosCommand());
             SimpleCommand.Register(new ExplodeCommand());
-            // Spawn Monster w/ Raycast
+
+            SimpleCommand.Register(new PosCommand());
 
             if (JCompatabilityHelper.IsModLoaded.WeatherRegistry)
             {
