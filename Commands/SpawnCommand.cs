@@ -13,6 +13,8 @@ namespace SimpleCommands.Commands
             instructions.Add("[/cmd] [enemy]");
             instructions.Add("[/cmd] [target] [enemy]");
             instructions.Add("[/cmd] [enemy] [x] [y] [z]");
+
+            tagInfo.Add("'Ignore':\nIgnores nav mesh restrictions (Will Throw Errors)");
         }
 
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
@@ -81,7 +83,11 @@ namespace SimpleCommands.Commands
                     {
                         if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 5, NavMesh.AllAreas))
                         {
-                            GameObject obj = RoundManager.Instance.SpawnEnemyGameObject(hit.position, 0, 0, foundMatches[smallest]);
+                            RoundManager.Instance.SpawnEnemyGameObject(hit.position, 0, 0, foundMatches[smallest]);
+                        }
+                        else if (parameters.isFlagged("ignore"))
+                        {
+                            RoundManager.Instance.SpawnEnemyGameObject(spawnPos, 0, 0, foundMatches[smallest]);
                         }
                         else
                         {

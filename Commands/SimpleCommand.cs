@@ -27,7 +27,7 @@ namespace SimpleCommands.Commands
         public string PagedList(string header, List<string> entries, int page, int pageMax = 5)
         {
             List<string> pageContent = new List<string>();
-            int max = (int)Math.Ceiling(entries.Count / (pageMax + 0f));
+            int max = (int)Math.Ceiling(entries.Count / (float)pageMax);
             page = Math.Clamp(page - 1, 0, max-1);
 
             if (entries.Count > pageMax)
@@ -46,41 +46,14 @@ namespace SimpleCommands.Commands
             return $"{header}\n{string.Join("\n", pageContent)}";
         }
 
-        public static bool IsClient(PlayerControllerB sender)
-        {
-            return sender.IsOwner;
-        }
-
-        public static string UnknownPlayerException(string username)
-        {
-            return $"{(username == "" ? "Unknown" : $"\"{username}\"")} is not in this lobby.";
-        }
-
-        public static string UnknownNumberException()
-        {
-            return "A Number was not able to be parsed.";
-        }
-
-        public static string UnknownVectorException()
-        {
-            return "A Position (X Y Z) was not able to be parsed.";
-        }
-
-        public static string MissingTerminal()
-        {
-            return "Missing Terminal.";
-        }
+        public static string UnknownPlayerException(string username) => $"{(username == "" ? "Unknown" : $"\"{username}\"")} is not in this lobby.";
+        public static string UnknownNumberException() => "A Number was not able to be parsed.";
+        public static string UnknownVectorException() => "A Position (X Y Z) was not able to be parsed.";
+        public static string MissingTerminal() => "Missing Terminal.";
 
         private static readonly List<SimpleCommand> SimpleCommands = new List<SimpleCommand>();
-        public static List<SimpleCommand> GetCommands()
-        {
-            return SimpleCommands;
-        }
-
-        public static string GetPrefix()
-        {
-            return SimpleCommandsBase.commandPrefix.Value;
-        }
+        public static List<SimpleCommand> GetCommands() => SimpleCommands;
+        public static string GetPrefix() => SimpleCommandsBase.commandPrefix.Value;
 
         public static void Register(SimpleCommand command)
         {
@@ -168,10 +141,7 @@ namespace SimpleCommands.Commands
             return null;
         }
 
-        public static Terminal GetTerminal()
-        {
-            return JLevelPropertyRegistry.GetTerminal();
-        }
+        public static Terminal GetTerminal() => JLevelPropertyRegistry.GetTerminal();
 
         public static void ClearChat()
         {
@@ -212,30 +182,11 @@ namespace SimpleCommands.Commands
                 return false;
             }
 
-            public bool Count(int value)
-            {
-                return parameters.Length >= value;
-            }
-
-            public int Count()
-            {
-                return parameters.Length;
-            }
-
-            public bool IsEmpty()
-            {
-                return parameters.Length == 0;
-            }
-
-            public string asString()
-            {
-                return "parameters: [" + string.Join(", ", parameters) + "], flags: [" + string.Join(", ", flags) + "]";
-            }
-
-            public string GetLowerCase()
-            {
-                return GetString().ToLower();
-            }
+            public bool Count(int value) => parameters.Length >= value;
+            public int Count() => parameters.Length;
+            public bool IsEmpty() => parameters.Length == 0;
+            public string asString() => $"parameters: [{string.Join(", ", parameters)}], flags: [{string.Join(", ", flags)}]";
+            public string GetLowerCase() => GetString().ToLower();
 
             public string GetString()
             {
@@ -283,21 +234,9 @@ namespace SimpleCommands.Commands
                 return value;
             }
 
-            public PlayerControllerB? GetPlayerAt(int index)
-            {
-                return SimpleCommand.GetPlayer(parameters[index]);
-            }
-
-            public bool GetVector(out Vector3 vector)
-            {
-                return GetRelativeVector(Vector3.zero, out vector);
-            }
-
-            public bool GetVectorAt(int startIndex, out Vector3 vector)
-            {
-                return GetRelativeVectorAt(startIndex, Vector3.zero, out vector);
-            }
-
+            public PlayerControllerB? GetPlayerAt(int index) => SimpleCommand.GetPlayer(parameters[index]);
+            public bool GetVector(out Vector3 vector) => GetRelativeVector(Vector3.zero, out vector);
+            public bool GetVectorAt(int startIndex, out Vector3 vector) => GetRelativeVectorAt(startIndex, Vector3.zero, out vector);
             public bool GetRelativeVector(Vector3 origin, out Vector3 vector)
             {
                 bool value = GetRelativeVectorAt(Math.Min(parameters.Length - 1, place), origin, out vector);

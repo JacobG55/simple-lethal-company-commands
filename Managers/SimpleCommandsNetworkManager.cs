@@ -14,7 +14,6 @@ namespace SimpleCommands.Managers
         public void Awake()
         {
             Instance = this;
-
             SimplePrefabs.RegisterBasePrefabs();
         }
 
@@ -51,8 +50,6 @@ namespace SimpleCommands.Managers
             HUDManager hudManager = HUDManager.Instance;
             SimpleCommandsBase.LogInfo($"Parsing: {commandMessage}", JLogLevel.Debuging);
 
-            bool isSender = SimpleCommand.IsClient(sender);
-
             string[] cmds = commandMessage.Split("&//=");
 
             foreach(string cmd in cmds)
@@ -83,13 +80,13 @@ namespace SimpleCommands.Managers
                                 }
                             }
                         }
-                        else if (isSender)
+                        else if (sender.IsLocalPlayer())
                         {
                             JHudHelper.QueueDisplayTip("Command Failure:", result);
                         }
                     }
                 }
-                else if (isSender)
+                else if (sender.IsLocalPlayer())
                 {
                     JHudHelper.QueueDisplayTip("Unknown Command:", $"{SimpleCommand.GetPrefix()}{cmd.Split(' ')[0]}", true);
                 }
@@ -100,7 +97,7 @@ namespace SimpleCommands.Managers
         public void SendErrorTipClientRpc(int playerId, string title, string description, bool isError)
         {
             HUDManager hud = HUDManager.Instance;
-            if (hud.localPlayer.actualClientId == hud.playersManager.allPlayerScripts[playerId].actualClientId)
+            if (hud.playersManager.allPlayerScripts[playerId].IsLocalPlayer())
             {
                 hud.DisplayTip(title, description, isError);
             }

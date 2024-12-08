@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using LethalLib.Modules;
 using SimpleCommands;
 using SimpleCommands.Commands;
 using System.Collections.Generic;
@@ -8,6 +7,8 @@ using Unity.Netcode;
 using UnityEngine;
 using JLL.API;
 using JLL.API.LevelProperties;
+using Simple_Commands.Managers;
+using LethalLib.Modules;
 
 namespace Simple_Commands.Commands
 {
@@ -53,12 +54,8 @@ namespace Simple_Commands.Commands
                 RegisterSimplePrefab(name, new SimplePrefab { prefab = mapObject.prefabToSpawn });
             }
 
-            SimpleCommandsBase.LogInfo($"LethalLib Map Hazards: {MapObjects.mapObjects.Count}", JLogLevel.Debuging);
-
-            foreach (var mapObject in MapObjects.mapObjects)
-            {
-                RegisterSimplePrefab(mapObject.mapObject.prefabToSpawn.name, new SimplePrefab { prefab = mapObject.mapObject.prefabToSpawn });
-            }
+            if (JCompatabilityHelper.IsModLoaded.LethalLib) 
+                LethalLibCompatibility.RegisterLethalLibPrefabs();
         }
 
         public class SimplePrefab

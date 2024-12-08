@@ -3,6 +3,7 @@ using JLL.API;
 using JLL.API.LevelProperties;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace SimpleCommands.Commands
 {
@@ -64,6 +65,10 @@ namespace SimpleCommands.Commands
                             TeleportPlayer(sender, pos, instant, isInside);
                             break;
                         }
+                        else if (destinationName != "")
+                        {
+                            return $"{destinationName} could not be found.";
+                        }
                     }
                     return UnknownPlayerException(name1);
 
@@ -86,6 +91,10 @@ namespace SimpleCommands.Commands
                             teleportedUser = player1.playerUsername;
                             TeleportPlayer(player1, pos, instant, isInside);
                             break;
+                        }
+                        else if (destinationName != "")
+                        {
+                            return $"{destinationName} not found.";
                         }
 
                         return UnknownPlayerException(name2);
@@ -123,8 +132,7 @@ namespace SimpleCommands.Commands
                     }
                     return UnknownPlayerException(name1);
 
-                default: 
-                    break;
+                default: break;
             }
 
             if (teleportedUser != "")
@@ -142,8 +150,39 @@ namespace SimpleCommands.Commands
             {
                 isInside = false;
                 pos = new Vector3(0, 0, -14);
-                formalName = "your Autopilot Ship";
+                formalName = "Autopilot Ship";
                 return true;
+            }
+
+            if (name == "breaker")
+            {
+                BreakerBox breakerBox = Object.FindObjectOfType<BreakerBox>();
+                formalName = "Breaker Box";
+                isInside = true;
+                if (breakerBox != null)
+                {
+                    pos = NavMeshSnap(breakerBox.transform.position);
+                    return true;
+                }
+                pos = Vector3.zero;
+                return false;
+            }
+
+            if (name == "apparatus")
+            {
+                LungProp[] lungs = Object.FindObjectsOfType<LungProp>();
+                isInside = true;
+                formalName = "Apparatus";
+                foreach (LungProp lung in lungs)
+                {
+                    if (lung.isLungDocked)
+                    {
+                        pos = NavMeshSnap(lung.transform.position);
+                        return true;
+                    }
+                }
+                pos = Vector3.zero;
+                return false;
             }
 
             int entrance = -1;
@@ -154,7 +193,7 @@ namespace SimpleCommands.Commands
             }
             else if (name.StartsWith("exit"))
             {
-                if (int.TryParse(name.Substring(4), out int num)) 
+                if (int.TryParse(name[4..], out int num)) 
                 {
                     entrance = num;
                 }
@@ -163,12 +202,47 @@ namespace SimpleCommands.Commands
             if (entrance >= 0)
             {
                 Vector3? entrancePosition = JLevelPropertyRegistry.GetEntranceTeleportLocation(entrance, !isInside, true);
+                formalName = entrance == 0 ? "Main Entrance" : $"Fire Exit #{entrance}";
                 if (entrancePosition != null)
                 {
                     pos = entrancePosition.Value;
-                    formalName = entrance == 0 ? "the Main Entrance" : $"Fire Exit #{entrance}";
                     return true;
                 }
+                pos = Vector3.zero;
+                return false;
+            }
+
+            string numString = string.Empty;
+            for (int i = name.Length-1; i > 0; i--)
+            {
+                if (char.IsNumber(name[i]))
+                {
+                    numString = name[i] + numString;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            int index = 0;
+            if (int.TryParse(numString, out int result))
+            {
+                index = result;
+            }
+
+            name = name.Remove(name.Length - numString.Length, numString.Length);
+            SimpleCommandsBase.LogInfo($"POI Parse: '{name}' '{numString}' {index}", JLogLevel.Debuging);
+            if (JLevelPropertyRegistry.HasPOI(name))
+            {
+                formalName = name;
+                if (JLevelPropertyRegistry.GetPOI(name, index, out Vector3 found))
+                {
+                    pos = NavMeshSnap(found);
+                    return true;
+                }
+                pos = Vector3.zero;
+                return false;
             }
 
             formalName = "";
@@ -176,7 +250,16 @@ namespace SimpleCommands.Commands
             return false;
         }
 
-        private void TeleportPlayer(PlayerControllerB player,  Vector3 pos, bool instant, bool isInside)
+        private Vector3 NavMeshSnap(Vector3 pos)
+        {
+            if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 3, NavMesh.AllAreas))
+            {
+                return hit.position;
+            }
+            return pos;
+        }
+
+        private void TeleportPlayer(PlayerControllerB player, Vector3 pos, bool instant, bool isInside)
         {
             if (instant)
             {
@@ -246,7 +329,7 @@ namespace SimpleCommands.Commands
         {
             success = true;
 
-            if (IsClient(sender))
+            if (sender.IsLocalPlayer())
             {
                 JHudHelper.QueueDisplayTip($"Pos: {sender.transform.position}", $"Rot: {sender.transform.rotation}");
                 SimpleCommandsBase.LogInfo($"Pos: {sender.transform.position} | Rot: {sender.transform.rotation}", JLogLevel.Debuging);

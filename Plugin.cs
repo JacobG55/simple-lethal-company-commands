@@ -3,7 +3,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using JLL.API;
-using LethalLib.Modules;
+using static JLL.JLL;
 using Simple_Commands.Commands;
 using Simple_Commands.Commands.Compatability;
 using Simple_Commands.Patches;
@@ -11,27 +11,24 @@ using SimpleCommands.Commands;
 using SimpleCommands.Managers;
 using SimpleCommands.Patches;
 using System.Reflection;
-using UnityEngine;
 
 namespace SimpleCommands
 {
     [BepInPlugin(modGUID, modName, modVersion)]
     [BepInDependency("JacobG5.JLL")]
-    [BepInDependency("evaisa.lethallib")]
+    [BepInDependency("evaisa.lethallib", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("mrov.WeatherRegistry", BepInDependency.DependencyFlags.SoftDependency)]
     public class SimpleCommandsBase : BaseUnityPlugin
     {
         private const string modGUID = "JacobG5.SimpleCommands";
         private const string modName = "SimpleCommands";
-        private const string modVersion = "1.4.0";
+        private const string modVersion = "1.5.0";
 
         private readonly Harmony harmony = new Harmony(modGUID);
 
-        public static SimpleCommandsBase Instance;
+        public static SimpleCommandsBase SimpleCommandsInstance;
 
         private ManualLogSource mls;
-
-        public GameObject networkObject;
 
         public static ConfigEntry<string> commandPrefix;
         public static ConfigEntry<bool> hostOnly;
@@ -39,9 +36,9 @@ namespace SimpleCommands
 
         void Awake()
         {
-            if (Instance == null)
+            if (SimpleCommandsInstance == null)
             {
-                Instance = this;
+                SimpleCommandsInstance = this;
             }
 
             hostOnly = Config.Bind("Main", "hostOnly", true, "Restricts commands to only being executed by the host.");
@@ -49,11 +46,9 @@ namespace SimpleCommands
             commandPrefix = Config.Bind("Main", "commandPrefix", "/", "Prefix for SimpleCommands");
 
             mls = BepInEx.Logging.Logger.CreateLogSource(modGUID);
-            JLL.JLL.NetcodePatch(mls, Assembly.GetExecutingAssembly().GetTypes());
-            networkObject = NetworkPrefabs.CreateNetworkPrefab("SimpleCommandsNetworkManager");
-            networkObject.AddComponent<SimpleCommandsNetworkManager>();
-
-            JLL.JLL.HarmonyPatch(harmony, mls, typeof(HUDManagerPatch), typeof(PlayerControllerBPatch), typeof(StartOfRoundPatch), typeof(TerminalPatch));
+            NetcodePatch(mls, Assembly.GetExecutingAssembly().GetTypes());
+            Instance.networkObject.AddComponent<SimpleCommandsNetworkManager>();
+            HarmonyPatch(harmony, mls, typeof(HUDManagerPatch), typeof(PlayerControllerBPatch), typeof(TerminalPatch));
 
             RegisterBaseCommands();
         }
@@ -96,7 +91,7 @@ namespace SimpleCommands
         {
             if (JLogHelper.AcceptableLogLevel(level))
             {
-                Instance.mls.LogInfo(message);
+                SimpleCommandsInstance.mls.LogInfo(message);
             }
         }
     }
