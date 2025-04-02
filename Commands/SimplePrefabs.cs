@@ -54,7 +54,7 @@ namespace Simple_Commands.Commands
                 RegisterSimplePrefab(name, new SimplePrefab { prefab = mapObject.prefabToSpawn });
             }
 
-            if (JCompatabilityHelper.IsModLoaded.LethalLib) 
+            if (JCompatabilityHelper.IsLoaded(JCompatabilityHelper.CachedMods.LethalLib)) 
                 LethalLibCompatibility.RegisterLethalLibPrefabs();
         }
 
@@ -107,7 +107,7 @@ namespace Simple_Commands.Commands
             public PrefabCommand() : base("prefab", "spawn registered prefabs")
             {
                 instructions.Add("[/cmd] [name] - Spawns prefab at the player.");
-                instructions.Add("[/cmd] [target] [name] - Spawns prefab at the target.");
+                instructions.Add("[/cmd] [name] [target] - Spawns prefab at the target.");
                 instructions.Add("[/cmd] [name] [x] [y] [z] - Spawns prefab at specified coordinates.");
             }
 
@@ -133,39 +133,32 @@ namespace Simple_Commands.Commands
                     }
                     else if (parameters.Count() >= 2)
                     {
-                        PlayerControllerB? player = GetPlayer(name);
+                        string playerName = parameters.GetString();
+                        PlayerControllerB? player = GetPlayer(playerName);
                         if (player != null)
                         {
                             position = player.transform.position;
-                            name = parameters.GetString();
                         }
                         else
                         {
-                            return UnknownPlayerException(name);
+                            return UnknownPlayerException(playerName);
                         }
                     }
 
                     List<KeyValuePair<string, SimplePrefab>> foundMatches = new List<KeyValuePair<string, SimplePrefab>>();
+                    int smallest = 0;
+
                     foreach (KeyValuePair<string, SimplePrefab> prefab in Prefabs)
                     {
                         if (prefab.Key.ToLower().StartsWith(name.ToLower()))
                         {
                             foundMatches.Add(prefab);
+                            if (prefab.Key.Length < foundMatches[smallest].Key.Length) smallest = foundMatches.Count - 1;
                         }
                     }
 
-
                     if (foundMatches.Count > 0)
                     {
-                        int smallest = 0;
-                        for (int i = 0; i < foundMatches.Count; i++)
-                        {
-                            if (foundMatches[i].Key.Length < foundMatches[smallest].Key.Length)
-                            {
-                                smallest = i;
-                            }
-                        }
-
                         if (Prefabs.ContainsKey(foundMatches[smallest].Key))
                         {
                             SimplePrefab prefab = Prefabs[foundMatches[smallest].Key];
@@ -191,15 +184,10 @@ namespace Simple_Commands.Commands
 
             public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
             {
-                int page = 0;
-                if (!parameters.IsEmpty())
-                {
-                    page = parameters.GetNumber();
-                }
-
                 success = true;
+                if (!sender.IsLocalPlayer()) return "";
                 ClearChat();
-                return PagedList("Spawnable Prefabs:", Prefabs.Keys.ToList(), page, 8);
+                return PagedList("Spawnable Prefabs:", Prefabs.Keys.ToList(), parameters.IsEmpty() ? 0 : parameters.GetNumber(), 8);
             }
         }
     }

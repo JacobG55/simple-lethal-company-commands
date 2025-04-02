@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.Netcode;
+using JLL.API;
 
 namespace SimpleCommands.Commands
 {
@@ -10,7 +11,7 @@ namespace SimpleCommands.Commands
         public ItemCommand() : base("item", "spawns item")
         {
             instructions.Add("[/cmd] [item]");
-            instructions.Add("[/cmd] [target] [item]");
+            instructions.Add("[/cmd] [item] [target]");
             instructions.Add("[/cmd] [item] [x] [y] [z]");
         }
 
@@ -25,21 +26,20 @@ namespace SimpleCommands.Commands
 
                 if (!parameters.IsEmpty())
                 {
-                    string first = parameters.GetString();
+                    itemName = parameters.GetString();
 
                     if (parameters.Count() >= 4)
                     {
                         if (parameters.GetRelativeVector(sender.transform.position, out Vector3 pos))
                         {
-                            itemName = first;
                             spawnPos = pos;
                         }
                         else return UnknownVectorException();
                     }
                     else if (parameters.Count(2))
                     {
-                        PlayerControllerB? player = GetPlayer(first);
-                        itemName = parameters.GetString();
+                        string playerName = parameters.GetString();
+                        PlayerControllerB? player = GetPlayer(playerName);
 
                         if (player != null)
                         {
@@ -47,12 +47,8 @@ namespace SimpleCommands.Commands
                         }
                         else
                         {
-                            return UnknownPlayerException(name);
+                            return UnknownPlayerException(playerName);
                         }
-                    }
-                    else
-                    {
-                        itemName = first;
                     }
                 }
 
@@ -63,31 +59,24 @@ namespace SimpleCommands.Commands
                 }
 
                 List<Item> foundMatches = new List<Item>();
+                int smallest = 0;
                 foreach (Item item in RoundManager.Instance.playersManager.allItemsList.itemsList)
                 {
                     if (item.itemName.ToLower().Replace(' ', '_').StartsWith(itemName.ToLower()))
                     {
                         foundMatches.Add(item);
+                        if (item.itemName.Length < foundMatches[smallest].itemName.Length) smallest = foundMatches.Count - 1;
                     }
                 }
 
                 if (foundMatches.Count > 0)
                 {
-                    int smallest = 0;
-                    for (int i = 0; i < foundMatches.Count; i++)
-                    {
-                        if (foundMatches[i].itemName.Length < foundMatches[smallest].itemName.Length)
-                        {
-                            smallest = i;
-                        }
-                    }
-
                     GameObject obj = GrabbableObject.Instantiate(foundMatches[smallest].spawnPrefab, spawnPos, Quaternion.identity);
                     GrabbableObject spawned = obj.GetComponent<GrabbableObject>();
                     spawned.fallTime = 0f;
                     if (foundMatches[smallest].isScrap)
                     {
-                        spawned.SetScrapValue(Random.Range(foundMatches[smallest].minValue, foundMatches[smallest].maxValue));
+                        spawned.SetScrapValue(Mathf.RoundToInt(Random.Range(foundMatches[smallest].minValue, foundMatches[smallest].maxValue) * RoundManager.Instance.scrapValueMultiplier));
                     }
                     spawned.GetComponent<NetworkObject>().Spawn();
 
@@ -117,6 +106,9 @@ namespace SimpleCommands.Commands
 
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
         {
+            success = true;
+            if (!sender.IsLocalPlayer()) return "";
+
             List<Item> items = new List<Item>();
             string title = "";
 
@@ -162,15 +154,8 @@ namespace SimpleCommands.Commands
                 names.Add(item.itemName.Replace(' ', '_'));
             }
 
-            int page = 0;
-            if (!parameters.IsEmpty())
-            {
-                page = parameters.GetNumber();
-            }
-
-            success = true;
             ClearChat();
-            return PagedList(title, names, page, 8);
+            return PagedList(title, names, parameters.IsEmpty() ? 0 : parameters.GetNumber(), 8);
         }
     }
 }

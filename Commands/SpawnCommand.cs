@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using JLL.API.LevelProperties;
 using UnityEngine;
 using UnityEngine.AI;
+using BepInEx;
+using JLL.API;
+using LethalLib.Modules;
 
 namespace SimpleCommands.Commands
 {
@@ -11,7 +14,7 @@ namespace SimpleCommands.Commands
         public SpawnCommand() : base("spawn", "spawns item")
         {
             instructions.Add("[/cmd] [enemy]");
-            instructions.Add("[/cmd] [target] [enemy]");
+            instructions.Add("[/cmd] [enemy] [target]");
             instructions.Add("[/cmd] [enemy] [x] [y] [z]");
 
             tagInfo.Add("'Ignore':\nIgnores nav mesh restrictions (Will Throw Errors)");
@@ -28,21 +31,21 @@ namespace SimpleCommands.Commands
 
                 if (!parameters.IsEmpty())
                 {
-                    string first = parameters.GetString();
+                    enemyName = parameters.GetString();
+
 
                     if (parameters.Count() >= 4)
                     {
                         if (parameters.GetRelativeVector(sender.transform.position, out Vector3 pos))
                         {
-                            enemyName = first;
                             spawnPos = pos;
                         }
                         else return UnknownVectorException();
                     }
                     else if (parameters.Count(2))
                     {
-                        PlayerControllerB? player = GetPlayer(first);
-                        enemyName = parameters.GetString();
+                        string playerName = parameters.GetString();
+                        PlayerControllerB? player = GetPlayer(playerName);
 
                         if (player != null)
                         {
@@ -50,35 +53,24 @@ namespace SimpleCommands.Commands
                         }
                         else
                         {
-                            return UnknownPlayerException(name);
+                            return UnknownPlayerException(playerName);
                         }
-                    }
-                    else
-                    {
-                        enemyName = first;
                     }
                 }
 
                 List<EnemyType> foundMatches = new List<EnemyType>();
-                foreach (EnemyType enemy in JLevelPropertyRegistry.AllSortedEnemies)
+                int smallest = 0;
+                if (!enemyName.IsNullOrWhiteSpace()) foreach (EnemyType enemy in JLevelPropertyRegistry.AllSortedEnemies)
                 {
                     if (enemy.enemyName.ToLower().Replace(' ', '_').StartsWith(enemyName.ToLower()))
                     {
                         foundMatches.Add(enemy);
+                        if (enemy.enemyName.Length < foundMatches[smallest].enemyName.Length) smallest = foundMatches.Count - 1;
                     }
                 }
 
                 if (foundMatches.Count > 0)
                 {
-                    int smallest = 0;
-                    for (int i = 0; i < foundMatches.Count; i++)
-                    {
-                        if (foundMatches[i].enemyName.Length < foundMatches[smallest].enemyName.Length)
-                        {
-                            smallest = i;
-                        }
-                    }
-
                     if (foundMatches[smallest].enemyPrefab != null)
                     {
                         if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 5, NavMesh.AllAreas))
@@ -120,6 +112,9 @@ namespace SimpleCommands.Commands
 
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
         {
+            success = true;
+            if (!sender.IsLocalPlayer()) return "";
+
             string title = "";
 
             bool indoor = parameters.isFlagged("indoor");
@@ -157,15 +152,8 @@ namespace SimpleCommands.Commands
                 }
             }
 
-            int page = 0;
-            if (!parameters.IsEmpty())
-            {
-                page = parameters.GetNumber();
-            }
-
-            success = true;
             ClearChat();
-            return PagedList(title, names, page, 8);
+            return PagedList(title, names, parameters.IsEmpty() ? 0 : parameters.GetNumber(), 8);
         }
     }
 }

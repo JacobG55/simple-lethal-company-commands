@@ -1,19 +1,19 @@
 ﻿using GameNetcodeStuff;
 using JLL.API;
+using LethalLevelLoader;
 using SimpleCommands.Commands;
 using System.Linq;
-using WeatherRegistry;
 
 namespace Simple_Commands.Commands.Compatability
 {
-    public class WeatherRegistryCommand : SimpleCommand
+    public class ExtendedLevelsCommand : SimpleCommand
     {
-        public WeatherRegistryCommand() : base("weatherregistry", "WeatherRegistry (mrov)")
+        public ExtendedLevelsCommand() : base("levels", "LethalLevelLoader ExtendedLevels (iAmBatby)")
         {
             overrideShowOutput = true;
             permissionRequired = false;
 
-            instructions.Add("[/cmd] - lists weathers registered through WeatherRegistry");
+            instructions.Add("[/cmd] - lists levels registered through LLL");
             instructions.Add("[/cmd] [page]");
         }
 
@@ -22,7 +22,7 @@ namespace Simple_Commands.Commands.Compatability
             success = true;
             if (!sender.IsLocalPlayer()) return "";
             ClearChat();
-            return PagedList("WeatherRegistry:", WeatherManager.Weathers.Select((weather) => weather.name.Replace(" ", "_")).ToList(), parameters.IsEmpty() ? 0 : parameters.GetNumber(), 7);
+            return PagedList("Extended Levels:", PatchedContent.ExtendedLevels.Select((level) => level.NumberlessPlanetName).ToList(), parameters.IsEmpty() ? 0 : parameters.GetNumber(), 7);
         }
     }
 }

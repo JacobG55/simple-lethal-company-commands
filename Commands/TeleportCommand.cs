@@ -322,6 +322,7 @@ namespace SimpleCommands.Commands
     {
         public PosCommand() : base("pos", "shows player position")
         {
+            permissionRequired = false;
             instructions.Add("[/cmd] - Shows Player Position");
         }
 

@@ -156,7 +156,17 @@ namespace SimpleCommands.Commands
             private string[] parameters;
             private string[] flags;
             private Vector3 targetPos;
-            private int place = 0;
+            public int place = 0;
+
+            private static Dictionary<string, bool> boolValues = new Dictionary<string, bool>()
+            {
+                { "true", true },
+                { "false", false },
+                { "on", true },
+                { "off", false },
+                { "1", true },
+                { "0", false },
+            };
 
             public CommandParameters(string[] parameters, string[] flags, Vector3 targetPos)
             {
@@ -165,10 +175,7 @@ namespace SimpleCommands.Commands
                 this.targetPos = targetPos + Vector3.up;
             }
 
-            public Vector3 GetTargetPos()
-            {
-                return targetPos;
-            }
+            public Vector3 GetTargetPos() => targetPos;
 
             public bool isFlagged(string flag)
             {
@@ -185,37 +192,27 @@ namespace SimpleCommands.Commands
             public bool Count(int value) => parameters.Length >= value;
             public int Count() => parameters.Length;
             public bool IsEmpty() => parameters.Length == 0;
+            public bool HasNext() => place < parameters.Length;
             public string asString() => $"parameters: [{string.Join(", ", parameters)}], flags: [{string.Join(", ", flags)}]";
             public string GetLowerCase() => GetString().ToLower();
 
             public string GetString()
             {
-                string value = GetStringAt(Math.Min(parameters.Length - 1, place));
                 place++;
-                return value;
+                return GetStringAt(Math.Min(parameters.Length - 1, place - 1));
             }
 
-            public string GetStringAt(int index)
-            {
-                return parameters[index];
-            }
+            public string GetStringAt(int index) => parameters[index];
 
-            public string GetLast()
-            {
-                return GetStringAt(parameters.Length - 1);
-            }
+            public string GetLast() => GetStringAt(parameters.Length - 1);
 
             public int GetNumber()
             {
-                int value = GetNumberAt(Math.Min(parameters.Length - 1, place), out bool isNumber);
                 place++;
-                return value;
+                return GetNumberAt(Math.Min(parameters.Length - 1, place - 1), out bool isNumber);
             }
 
-            public int GetNumberAt(int index)
-            {
-                return GetNumberAt(index, out bool isNumber);
-            }
+            public int GetNumberAt(int index) => GetNumberAt(index, out bool isNumber);
 
             public int GetNumberAt(int index, out bool isNumber)
             {
@@ -226,6 +223,19 @@ namespace SimpleCommands.Commands
                 }
                 return 0;
             }
+
+            public bool GetBool()
+            {
+                GetBoolAt(place, out bool value);
+                place++;
+                return value;
+            }
+            public bool GetBoolAt(int index)
+            {
+                GetBoolAt(index, out bool value);
+                return value;
+            }
+            public bool GetBoolAt(int index, out bool value) => boolValues.TryGetValue(parameters[index].ToLower(), out value);
 
             public PlayerControllerB? GetPlayer()
             {

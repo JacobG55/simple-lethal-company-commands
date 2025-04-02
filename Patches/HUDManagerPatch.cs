@@ -12,7 +12,7 @@ namespace SimpleCommands.Patches
     {
         [HarmonyPatch("AddTextToChatOnServer")]
         [HarmonyPrefix]
-        public static bool patchAddTextToChatOnServer(string chatMessage, int playerId, HUDManager __instance)
+        public static bool patchAddTextToChatOnServer(ref string chatMessage, int playerId, HUDManager __instance)
         {
             if (playerId != -1)
             {
@@ -41,6 +41,7 @@ namespace SimpleCommands.Patches
                         SimpleCommandsBase.LogInfo("Sending Command Request.", JLogLevel.User);
                         SimpleCommandsNetworkManager.Instance.RequestCommandExecutionServerRpc(playerId, payload, targetPos);
                     }
+                    chatMessage = string.Empty;
                     return false;
                 }
             }

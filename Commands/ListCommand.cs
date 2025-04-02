@@ -1,4 +1,5 @@
 ﻿using GameNetcodeStuff;
+using JLL.API;
 using System.Collections.Generic;
 
 namespace SimpleCommands.Commands
@@ -16,6 +17,9 @@ namespace SimpleCommands.Commands
 
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
         {
+            success = true;
+            if (!sender.IsLocalPlayer()) return "";
+
             List<string> usernames = new List<string>();
             PlayerControllerB[] players = RoundManager.Instance.playersManager.allPlayerScripts;
 
@@ -27,14 +31,7 @@ namespace SimpleCommands.Commands
                 }
             }
 
-            int page = 0;
-            if (!parameters.IsEmpty())
-            {
-                page = parameters.GetNumber();
-            }
-
-            success = true;
-            return PagedList("Players in Lobby:", usernames, page, 4);
+            return PagedList("Players in Lobby:", usernames, parameters.IsEmpty() ? 0 : parameters.GetNumber(), 4);
         }
     }
 
@@ -56,6 +53,7 @@ namespace SimpleCommands.Commands
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
         {
             success = true;
+            if (!sender.IsLocalPlayer()) return "";
             int page = 0;
 
             if (!parameters.IsEmpty())

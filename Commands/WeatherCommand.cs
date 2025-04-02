@@ -11,8 +11,8 @@ namespace SimpleCommands.Commands
 
         public WeatherCommand() : base("weather", "changes weather")
         {
-            instructions.Add("[/cmd] (clear | dusty | foggy | rainy | stormy | eclipsed)");
-            if (JCompatabilityHelper.IsModLoaded.WeatherRegistry)
+            instructions.Add("[/cmd] (clear | dusty | foggy | rainy | stormy | flooded | eclipsed)");
+            if (JCompatabilityHelper.IsLoaded(JCompatabilityHelper.CachedMods.WeatherRegistry))
             {
                 instructions.Add("{Check /weatherregistry for weather registry weather ids}");
             }
@@ -23,6 +23,7 @@ namespace SimpleCommands.Commands
             weatherAlias.Add("fog", "foggy");
             weatherAlias.Add("rain", "rainy");
             weatherAlias.Add("storm", "stormy");
+            weatherAlias.Add("flood", "flooded");
             weatherAlias.Add("eclipse", "eclipsed");
         }
 
@@ -40,12 +41,9 @@ namespace SimpleCommands.Commands
                 string type = parameters.GetLowerCase();
                 string moddedWeather = string.Empty;
 
-                if (weatherAlias.ContainsKey(type))
-                {
-                    type = weatherAlias[type];
-                }
+                if (weatherAlias.TryGetValue(type, out string other)) type = other;
 
-                if (JCompatabilityHelper.IsModLoaded.WeatherRegistry)
+                if (SimpleCommandsBase.WRPresent)
                 {
                     foreach (string name in JWeatherRegistryHelper.GetCustomWeatherNames())
                     {
@@ -64,27 +62,29 @@ namespace SimpleCommands.Commands
                     LevelWeatherType weatherType;
                     switch (type)
                     {
-                        case ("none"):
+                        case "none":
                             weatherType = LevelWeatherType.None;
                             break;
-                        case ("dustclouds"):
+                        case "dustclouds":
                             weatherType = LevelWeatherType.DustClouds;
                             break;
-                        case ("foggy"):
+                        case "foggy":
                             weatherType = LevelWeatherType.Foggy;
                             break;
-                        case ("rainy"):
+                        case "rainy":
                             weatherType = LevelWeatherType.Rainy;
                             break;
-                        case ("stormy"):
+                        case "stormy":
                             weatherType = LevelWeatherType.Stormy;
                             break;
-                        case ("eclipsed"):
+                        case "flooded":
+                            weatherType = LevelWeatherType.Flooded;
+                            break;
+                        case "eclipsed":
                             weatherType = LevelWeatherType.Eclipsed;
                             break;
 
-                        default:
-                            return $"Unknown Weather: {type}";
+                        default: return $"Unknown Weather: {type}";
                     }
 
                     selected.currentWeather = weatherType;
