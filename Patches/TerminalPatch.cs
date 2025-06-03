@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 
-namespace Simple_Commands.Patches
+namespace SimpleCommands.Patches
 {
     [HarmonyPatch(typeof(Terminal))]
     internal class TerminalPatch

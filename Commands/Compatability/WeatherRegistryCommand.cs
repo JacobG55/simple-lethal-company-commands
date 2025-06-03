@@ -1,10 +1,9 @@
 ﻿using GameNetcodeStuff;
 using JLL.API;
-using SimpleCommands.Commands;
 using System.Linq;
 using WeatherRegistry;
 
-namespace Simple_Commands.Commands.Compatability
+namespace SimpleCommands.Commands.Compatability
 {
     public class WeatherRegistryCommand : SimpleCommand
     {

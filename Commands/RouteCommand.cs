@@ -1,17 +1,9 @@
 ﻿using GameNetcodeStuff;
-using HarmonyLib;
-using LethalLib.Modules;
-using Simple_Commands.Managers;
-using SimpleCommands;
-using SimpleCommands.Commands;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.Netcode;
-using UnityEngine;
-using static UnityEngine.Rendering.HighDefinition.ScalableSettingLevelParameter;
 
-namespace Simple_Commands.Commands
+namespace SimpleCommands.Commands
 {
     public class RouteCommand : SimpleCommand
     {

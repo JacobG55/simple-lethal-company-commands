@@ -1,10 +1,9 @@
 ﻿using GameNetcodeStuff;
 using JLL.API;
 using LethalLevelLoader;
-using SimpleCommands.Commands;
 using System.Linq;
 
-namespace Simple_Commands.Commands.Compatability
+namespace SimpleCommands.Commands.Compatability
 {
     public class ExtendedLevelsCommand : SimpleCommand
     {

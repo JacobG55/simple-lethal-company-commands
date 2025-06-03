@@ -1,23 +1,52 @@
-﻿using GameNetcodeStuff;
+﻿using BepInEx;
+using GameNetcodeStuff;
+using JLL.API;
+using System;
 using System.Collections.Generic;
-using JLL.API.LevelProperties;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
-using BepInEx;
-using JLL.API;
-using LethalLib.Modules;
 
 namespace SimpleCommands.Commands
 {
-    public class SpawnCommand : SimpleCommand
+    public class SpawnCommand<T> : SimpleCommand
     {
-        public SpawnCommand() : base("spawn", "spawns item")
-        {
-            instructions.Add("[/cmd] [enemy]");
-            instructions.Add("[/cmd] [enemy] [target]");
-            instructions.Add("[/cmd] [enemy] [x] [y] [z]");
+        private readonly Func<T, string> Identify;
+        private readonly Func<string[], IEnumerable<T>> RetreiveCollection;
 
-            tagInfo.Add("'Ignore':\nIgnores nav mesh restrictions (Will Throw Errors)");
+        private readonly bool RequiresNavmesh;
+        private readonly Action<T, Vector3, CommandParameters> Result;
+
+        public readonly ListCommand? ListCmd;
+
+        public SpawnCommand(string name, string description, Func<T, string> identify, Func<string[], IEnumerable<T>> collection, Action<T, Vector3, CommandParameters> result, bool requireNavmesh = false) : base(name, description)
+        {
+            instructions.Add("[/cmd] [id]");
+            instructions.Add("[/cmd] [id] [count]");
+            instructions.Add("[/cmd] [id] [target]");
+            instructions.Add("[/cmd] [id] [target] [count]");
+            instructions.Add("[/cmd] [id] [x] [y] [z]");
+            instructions.Add("[/cmd] [id] [x] [y] [z] [count]");
+
+            if (requireNavmesh) tagInfo.Add("'Ignore':\nIgnores nav mesh restrictions (May Throw Errors)");
+            else tagInfo.Add("'Snap':\nSnaps to nav mesh");
+            tagInfo.Add("'Uncapped':\nIgnores cap to spawn commands");
+
+            Identify = identify;
+            RetreiveCollection = collection;
+            RequiresNavmesh = requireNavmesh;
+            Result = result;
+        }
+
+        public SpawnCommand(string name, string description, string listCmd, string listHeader, (string, string)[] filterInfos, Func<T, string> identify, Func<string[], IEnumerable<T>> collection, Action<T, Vector3, CommandParameters> result, bool requireNavmesh = false) 
+            : this(name, description, identify, collection, result, requireNavmesh)
+        {
+            ListCmd = new ListCommand(this, listCmd, listHeader, filterInfos);
+        }
+
+        public override void OnRegister()
+        {
+            if (ListCmd != null) Register(ListCmd);
         }
 
         public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
@@ -26,13 +55,13 @@ namespace SimpleCommands.Commands
 
             if (sender.IsHost || sender.IsServer)
             {
-                string enemyName = "";
-                Vector3 spawnPos = sender.transform.position;
+                string identifier = "";
+                Vector3 spawnPos = parameters.GetTargetPos();
+                int count = 1;
 
                 if (!parameters.IsEmpty())
                 {
-                    enemyName = parameters.GetString();
-
+                    identifier = parameters.GetString();
 
                     if (parameters.Count() >= 4)
                     {
@@ -41,119 +70,119 @@ namespace SimpleCommands.Commands
                             spawnPos = pos;
                         }
                         else return UnknownVectorException();
+
+                        if (parameters.HasNext()) count = Math.Max(count, parameters.GetNumber());
                     }
                     else if (parameters.Count(2))
                     {
+                        int num = parameters.GetNumberAt(1, out bool isNumber);
+
                         string playerName = parameters.GetString();
                         PlayerControllerB? player = GetPlayer(playerName);
 
-                        if (player != null)
+                        if (isNumber)
+                        {
+                            count = num;
+                        }
+                        else if (player != null)
                         {
                             spawnPos = player.transform.position;
+                            if (parameters.HasNext()) count = Math.Max(count, parameters.GetNumber());
                         }
                         else
                         {
                             return UnknownPlayerException(playerName);
                         }
+
+                        if (player != null)
+                        {
+                            spawnPos = player.transform.position;
+                        }
                     }
                 }
 
-                List<EnemyType> foundMatches = new List<EnemyType>();
+                if (identifier.IsNullOrWhiteSpace()) return "Empty Identifer";
+
+                List<T> foundMatches = [];
                 int smallest = 0;
-                if (!enemyName.IsNullOrWhiteSpace()) foreach (EnemyType enemy in JLevelPropertyRegistry.AllSortedEnemies)
+                string? smallestID = null;
+
+                foreach (T item in RetreiveCollection.Invoke(ListCmd == null ? [] : ListCmd.filters.Keys.Where(parameters.isFlagged).ToArray()))
                 {
-                    if (enemy.enemyName.ToLower().Replace(' ', '_').StartsWith(enemyName.ToLower()))
+                    string id = Identify.Invoke(item);
+                    if (id.Replace(' ', '_').StartsWith(identifier, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        foundMatches.Add(enemy);
-                        if (enemy.enemyName.Length < foundMatches[smallest].enemyName.Length) smallest = foundMatches.Count - 1;
+                        foundMatches.Add(item);
+                        if (smallestID == null || id.Length < smallestID.Length)
+                        {
+                            smallest = foundMatches.Count - 1;
+                            smallestID = id;
+                        }
                     }
                 }
 
-                if (foundMatches.Count > 0)
+                if (foundMatches.Count > 0 && smallestID != null)
                 {
-                    if (foundMatches[smallest].enemyPrefab != null)
+                    bool snap = parameters.isFlagged("snap");
+                    if (RequiresNavmesh || snap)
                     {
                         if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 5, NavMesh.AllAreas))
                         {
-                            RoundManager.Instance.SpawnEnemyGameObject(hit.position, 0, 0, foundMatches[smallest]);
+                            IterateResult(foundMatches[smallest], hit.position, parameters, count);
+                            success = true;
+                            return $"Spawned {smallestID} at {hit.position}.";
                         }
-                        else if (parameters.isFlagged("ignore"))
-                        {
-                            RoundManager.Instance.SpawnEnemyGameObject(spawnPos, 0, 0, foundMatches[smallest]);
-                        }
-                        else
+                        else if (!snap && !parameters.isFlagged("ignore"))
                         {
                             return "Failed to spawn. (Couldn't Find NavMesh.)";
                         }
                     }
 
+                    IterateResult(foundMatches[smallest], spawnPos, parameters, count);
+
                     success = true;
-                    return $"Spawned {foundMatches[smallest].enemyName} at {spawnPos}.";
+                    return $"Spawned {smallestID} at {spawnPos}.";
                 }
-                return "Unknown Enemy: " + enemyName;
+                return $"Unknown Identifier: {smallestID}";
             }
             return "";
         }
-    }
 
-    public class EnemiesCommand : SimpleCommand
-    {
-        public EnemiesCommand() : base("enemies", "lists enemies") 
-        { 
-            overrideShowOutput = true;
-            permissionRequired = false;
-
-            instructions.Add("[/cmd] - lists item ids");
-            instructions.Add("[/cmd] [page]");
-
-            tagInfo.Add("'Indoor':\nFilters to show interior enemies");
-            tagInfo.Add("'Outdoor':\nFilters to show exterior enemies");
+        private void IterateResult(T item, Vector3 pos, CommandParameters parameters, int count)
+        {
+            int cap = parameters.isFlagged("uncapped") ? int.MaxValue : SimpleCommandsBase.spawnCap.Value;
+            for (int i = 0; i < count && i < cap; i++) Result.Invoke(item, pos, parameters);
         }
 
-        public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
+        public class ListCommand : SimpleCommand
         {
-            success = true;
-            if (!sender.IsLocalPlayer()) return "";
-
-            string title = "";
-
-            bool indoor = parameters.isFlagged("indoor");
-            bool outdoor = parameters.isFlagged("outdoor");
-
-            if (indoor || outdoor)
+            private readonly string header;
+            private readonly SpawnCommand<T> parentCommand;
+            public readonly Dictionary<string, string> filters;
+            public ListCommand(SpawnCommand<T> parentCommand, string cmd, string header, (string, string)[] filters) : base(cmd, $"lists spawnable {cmd}")
             {
-                if (indoor)
-                {
-                    title = "Indoor Enemies:";
-                }
-                if (outdoor)
-                {
-                    title = "Outdoor Enemies:";
-                }
-                if (indoor && outdoor)
-                {
-                    title = "Spawnable Enemies:";
-                }
-            }
-            else
-            {
-                title = "Spawnable Enemies:";
-                indoor = true;
-                outdoor = true;
-            }
+                instructions.Add($"[/cmd] - Lists {header.ToLower()}");
+                instructions.Add("[/cmd] [page]");
+                this.parentCommand = parentCommand;
+                this.header = header;
+                this.filters = new Dictionary<string, string>();
 
-            List<string> names = new List<string>();
-
-            foreach (EnemyType enemy in JLevelPropertyRegistry.AllSortedEnemies)
-            {
-                if ((enemy.isOutsideEnemy || enemy.isDaytimeEnemy) ? outdoor : indoor)
+                foreach (var pair in filters)
                 {
-                    names.Add(enemy.enemyName.Replace(' ', '_'));
+                    this.filters.Add(pair.Item1, pair.Item2);
+                    tagInfo.Add($"'{pair.Item1}':\n{pair.Item2}");
                 }
             }
 
-            ClearChat();
-            return PagedList(title, names, parameters.IsEmpty() ? 0 : parameters.GetNumber(), 8);
+            public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
+            {
+                success = true;
+                if (!sender.IsLocalPlayer()) return "";
+                ClearChat();
+                string[] activeFilters = filters.Keys.Where(parameters.isFlagged).ToArray();
+                return PagedList($"{header}:{(filters.Keys.Count > 0 ? $"\nFilters: {string.Join(' ', filters.Keys)}" : string.Empty)}", 
+                    parentCommand.RetreiveCollection.Invoke(activeFilters).Select(parentCommand.Identify.Invoke).ToList(), parameters.IsEmpty() ? 0 : parameters.GetNumber(), 8);
+            }
         }
     }
 }

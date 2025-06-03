@@ -1,5 +1,5 @@
 ﻿using GameNetcodeStuff;
-using Simple_Commands.Patches;
+using SimpleCommands.Patches;
 
 namespace SimpleCommands.Commands
 {

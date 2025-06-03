@@ -78,13 +78,13 @@ namespace SimpleCommands.Commands
                                     page = parameters.GetNumberAt(2);
                                 }
                                 ClearChat();
-                                return PagedList($"{command.name.ToUpper()} Accepted Flags:", command.tagInfo, page, 4);
+                                return PagedList($"{command.name.ToUpper()} Accepted Flags:", command.tagInfo, page, 6);
                             }
 
                             page = parameters.GetNumberAt(1);
                         }
                         ClearChat();
-                        return PagedList($"{command.name.ToUpper()} Use Cases:\n{GetPrefix()}help {command.name} flags\nfor flag info]", command.instructions, page).Replace("[/cmd]", GetPrefix() + commandName);
+                        return PagedList($"{command.name.ToUpper()} Use Cases:\n{GetPrefix()}help {command.name} flags\nfor flag info]", command.instructions, page, 6).Replace("[/cmd]", GetPrefix() + commandName);
                     }
                     else
                     {
@@ -101,7 +101,7 @@ namespace SimpleCommands.Commands
                 entries.Add($"{GetPrefix()}{command.name} - {command.description}");
             }
             ClearChat();
-            return PagedList("List of Commands:", entries, page);
+            return PagedList("List of Commands:", entries, page, 6);
         }
     }
 }

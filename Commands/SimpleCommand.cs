@@ -3,6 +3,7 @@ using JLL.API;
 using JLL.API.LevelProperties;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace SimpleCommands.Commands
@@ -24,9 +25,10 @@ namespace SimpleCommands.Commands
 
         public abstract string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success);
 
-        public string PagedList(string header, List<string> entries, int page, int pageMax = 5)
+        public string PagedList(string header, List<string> entries, int page, int pageMax = 6)
         {
-            List<string> pageContent = new List<string>();
+            if (entries.Count == 0) return $"{header}\nNo Entries Found.";
+            List<string> pageContent = [];
             int max = (int)Math.Ceiling(entries.Count / (float)pageMax);
             page = Math.Clamp(page - 1, 0, max-1);
 
@@ -55,6 +57,9 @@ namespace SimpleCommands.Commands
         public static List<SimpleCommand> GetCommands() => SimpleCommands;
         public static string GetPrefix() => SimpleCommandsBase.commandPrefix.Value;
 
+        public static void Register(string name, Action<CommandParameters> action, string description = "")
+            => Register(new ActionCommand(name, description, action));
+
         public static void Register(SimpleCommand command)
         {
             if (!command.overrideShowOutput)
@@ -63,8 +68,11 @@ namespace SimpleCommands.Commands
             }
 
             SimpleCommands.Add(command);
+            command.OnRegister();
             SimpleCommandsBase.LogInfo($"Registered Simple Command: {GetPrefix()} {command.name}", JLogLevel.Debuging);
         }
+
+        public virtual void OnRegister() { }
 
         public static bool tryParseCommand(string cmd, out SimpleCommand? command, out CommandParameters? parameters, Vector3 targetPos)
         {
@@ -76,8 +84,8 @@ namespace SimpleCommands.Commands
 
             if (command == null) return false;
 
-            List<string> parameterValues = new List<string>();
-            List<string> flagValues = new List<string>();
+            List<string> parameterValues = [];
+            List<string> flagValues = [];
 
             bool parameter = true;
             for (int i = 1; i < split.Length; i++)
@@ -153,12 +161,13 @@ namespace SimpleCommands.Commands
 
         public class CommandParameters
         {
-            private string[] parameters;
-            private string[] flags;
+            public PlayerControllerB sender { internal set; get; }
+            private readonly string[] parameters;
+            private readonly string[] flags;
             private Vector3 targetPos;
             public int place = 0;
 
-            private static Dictionary<string, bool> boolValues = new Dictionary<string, bool>()
+            private static readonly Dictionary<string, bool> boolValues = new Dictionary<string, bool>()
             {
                 { "true", true },
                 { "false", false },
@@ -181,13 +190,15 @@ namespace SimpleCommands.Commands
             {
                 for (int i = 0; i < flags.Length; i++)
                 {
-                    if (flags[i] == flag.ToLower())
+                    if (flags[i].Equals(flag, StringComparison.InvariantCultureIgnoreCase))
                     {
                         return true;
                     }
                 }
                 return false;
             }
+
+            public string[] GetFlags() => flags;
 
             public bool Count(int value) => parameters.Length >= value;
             public int Count() => parameters.Length;
@@ -224,6 +235,24 @@ namespace SimpleCommands.Commands
                 return 0;
             }
 
+            public float GetFloat()
+            {
+                place++;
+                return GetFloatAt(Math.Min(parameters.Length - 1, place - 1), out bool isNumber);
+            }
+
+            public float GetFloatAt(int index) => GetFloatAt(index, out bool isNumber);
+
+            public float GetFloatAt(int index, out bool isNumber)
+            {
+                isNumber = float.TryParse(parameters[index], out float value);
+                if (isNumber)
+                {
+                    return value;
+                }
+                return 0;
+            }
+
             public bool GetBool()
             {
                 GetBoolAt(place, out bool value);
@@ -235,7 +264,8 @@ namespace SimpleCommands.Commands
                 GetBoolAt(index, out bool value);
                 return value;
             }
-            public bool GetBoolAt(int index, out bool value) => boolValues.TryGetValue(parameters[index].ToLower(), out value);
+            public bool GetBoolAt(int index, out bool value) 
+                => boolValues.TryGetValue(parameters[index].ToLower(), out value);
 
             public PlayerControllerB? GetPlayer()
             {

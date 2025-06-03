@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -21,6 +20,8 @@ namespace SimpleCommands.Components
         private InputAction jumpAction;
         private InputAction crouchAction;
 
+        public float defaultSpeed;
+
         public void Start()
         {
             player = gameObject.GetComponent<PlayerControllerB>();
@@ -28,6 +29,7 @@ namespace SimpleCommands.Components
             InputActionAsset actions = IngamePlayerSettings.Instance.playerInput.actions;
             jumpAction = actions.FindAction("Jump");
             crouchAction = actions.FindAction("Crouch");
+            defaultSpeed = player.movementSpeed;
         }
 
 
@@ -38,28 +40,27 @@ namespace SimpleCommands.Components
                 player.sprintMeter = 1f;
             }
 
-            if (!player.quickMenuManager.isMenuOpen && player.IsOwner && player.isPlayerControlled && !player.inSpecialInteractAnimation && !player.isTypingChat)
-            {
-                HandleInput();
-            }
+            bool canInput = !player.quickMenuManager.isMenuOpen && player.IsOwner && player.isPlayerControlled && !player.inSpecialInteractAnimation && !player.isTypingChat;
 
-            if (enableFlying && flying)
-            {
-                if (player.thisController.isGrounded) SetFlying(false);
-                player.takingFallDamage = false;
-            }
-        }
-
-        public void HandleInput()
-        {
             if (enableFlying)
             {
-                if (jumpAction.WasPressedThisFrame())
+                if (canInput && jumpAction.WasPressedThisFrame())
                 {
                     if (Time.realtimeSinceStartup - lastJumpPress < 0.4f) SetFlying(!flying);
                     lastJumpPress = Time.realtimeSinceStartup;
                 }
-                if (flying) player.fallValueUncapped = player.fallValue = (jumpAction.IsPressed() ? flightSpeed.y : crouchAction.IsPressed() ? flightSpeed.y * -1.4f : 0) * (player.isSprinting ? 1.6f : 1f);
+                if (flying)
+                {
+                    float y = 0f;
+                    if (canInput)
+                    {
+                        if (jumpAction.IsPressed()) y = flightSpeed.y;
+                        else if (crouchAction.IsPressed()) y = flightSpeed.y * -1.4f;
+                    }
+                    player.fallValueUncapped = player.fallValue = y * (player.isSprinting ? 1.6f : 1f);
+                    if (player.thisController.isGrounded) SetFlying(false);
+                    player.takingFallDamage = false;
+                }
             }
         }
 

@@ -1,20 +1,15 @@
-﻿using GameNetcodeStuff;
-using SimpleCommands;
-using SimpleCommands.Commands;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using JLL.API;
 using JLL.API.LevelProperties;
-using Simple_Commands.Managers;
-using LethalLib.Modules;
+using SimpleCommands.Managers;
 
-namespace Simple_Commands.Commands
+namespace SimpleCommands.Commands
 {
     public class SimplePrefabs
     {
-        private static readonly Dictionary<string, SimplePrefab> Prefabs = new Dictionary<string, SimplePrefab>();
+        internal static readonly Dictionary<string, SimplePrefab> Prefabs = new Dictionary<string, SimplePrefab>();
         private static bool registeredBasePrefabs = false;
 
         public static void RegisterSimplePrefab(string name, SimplePrefab prefab)
@@ -26,9 +21,7 @@ namespace Simple_Commands.Commands
         }
 
         public static void RegisterSimplePrefab(string name, GameObject prefab)
-        {
-            RegisterSimplePrefab(name, new SimplePrefab() { prefab = prefab });
-        }
+            => RegisterSimplePrefab(name, new SimplePrefab(prefab));
 
         internal static void RegisterBasePrefabs()
         {
@@ -38,7 +31,7 @@ namespace Simple_Commands.Commands
             SimpleCommandsBase.LogInfo("Registering Base Game Prefabs.", JLogLevel.Debuging);
 
             Terminal terminal = JLevelPropertyRegistry.GetTerminal();
-            RegisterSimplePrefab("Cruiser", new CruiserPrefab { prefab = terminal.buyableVehicles[0].vehiclePrefab, spawnOffset = new Vector3(0, 14, 0) });
+            RegisterSimplePrefab("Cruiser", new CruiserPrefab(terminal.buyableVehicles[0].vehiclePrefab) {spawnOffset = new Vector3(0, 14, 0)});
 
             SimpleCommandsBase.LogInfo($"Vanilla Map Hazards: {terminal.moonsCatalogueList[1].spawnableMapObjects.Length}", JLogLevel.Debuging);
 
@@ -51,7 +44,7 @@ namespace Simple_Commands.Commands
                     "TurretContainer" => "Turret",
                     _ => name,
                 };
-                RegisterSimplePrefab(name, new SimplePrefab { prefab = mapObject.prefabToSpawn });
+                RegisterSimplePrefab(name, new SimplePrefab(mapObject.prefabToSpawn, PrefabSource.Hazard));
             }
 
             if (JCompatabilityHelper.IsLoaded(JCompatabilityHelper.CachedMods.LethalLib)) 
@@ -62,6 +55,15 @@ namespace Simple_Commands.Commands
         {
             public GameObject prefab;
             public Vector3 spawnOffset = Vector3.zero;
+            public readonly PrefabSource source;
+
+            public SimplePrefab(GameObject prefab) : this(prefab, PrefabSource.Custom) { }
+
+            internal SimplePrefab(GameObject prefab, PrefabSource source)
+            {
+                this.prefab = prefab;
+                this.source = source;
+            }
 
             public void SpawnPrefab(Vector3 pos, Quaternion rot)
             {
@@ -89,7 +91,7 @@ namespace Simple_Commands.Commands
             }
         }
 
-        public class CruiserPrefab : SimplePrefab
+        public class CruiserPrefab(GameObject prefab) : SimplePrefab(prefab, PrefabSource.Vehicle)
         {
             public override void SetPrefabProperties(ref GameObject prefab, Vector3 pos, Quaternion rot)
             {
@@ -102,93 +104,11 @@ namespace Simple_Commands.Commands
             }
         }
 
-        internal class PrefabCommand : SimpleCommand
+        public enum PrefabSource
         {
-            public PrefabCommand() : base("prefab", "spawn registered prefabs")
-            {
-                instructions.Add("[/cmd] [name] - Spawns prefab at the player.");
-                instructions.Add("[/cmd] [name] [target] - Spawns prefab at the target.");
-                instructions.Add("[/cmd] [name] [x] [y] [z] - Spawns prefab at specified coordinates.");
-            }
-
-            public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
-            {
-                success = false;
-
-                if (!parameters.IsEmpty())
-                {
-                    string name = parameters.GetString();
-
-                    Vector3 position = sender.transform.position;
-                    bool customPos = false;
-
-                    if (parameters.Count() >= 4)
-                    {
-                        if (parameters.GetRelativeVector(sender.transform.position, out Vector3 pos))
-                        {
-                            position = pos;
-                            customPos = true;
-                        }
-                        else return UnknownVectorException();
-                    }
-                    else if (parameters.Count() >= 2)
-                    {
-                        string playerName = parameters.GetString();
-                        PlayerControllerB? player = GetPlayer(playerName);
-                        if (player != null)
-                        {
-                            position = player.transform.position;
-                        }
-                        else
-                        {
-                            return UnknownPlayerException(playerName);
-                        }
-                    }
-
-                    List<KeyValuePair<string, SimplePrefab>> foundMatches = new List<KeyValuePair<string, SimplePrefab>>();
-                    int smallest = 0;
-
-                    foreach (KeyValuePair<string, SimplePrefab> prefab in Prefabs)
-                    {
-                        if (prefab.Key.ToLower().StartsWith(name.ToLower()))
-                        {
-                            foundMatches.Add(prefab);
-                            if (prefab.Key.Length < foundMatches[smallest].Key.Length) smallest = foundMatches.Count - 1;
-                        }
-                    }
-
-                    if (foundMatches.Count > 0)
-                    {
-                        if (Prefabs.ContainsKey(foundMatches[smallest].Key))
-                        {
-                            SimplePrefab prefab = Prefabs[foundMatches[smallest].Key];
-                            prefab.SpawnPrefab(position + (customPos ? Vector3.zero : prefab.spawnOffset), sender.transform.rotation);
-
-                            success = true;
-                            return $"Spawned {foundMatches[smallest].Key}!";
-                        }
-                    }
-                    return $"Unknown Prefab: {name}";
-                }
-                return "";
-            }
-        }
-
-        internal class PrefabsCommand : SimpleCommand
-        {
-            public PrefabsCommand() : base("prefabs", "list spawnable prefabs")
-            {
-                instructions.Add("[/cmd] - Lists spawnable prefabs");
-                instructions.Add("[/cmd] [page]");
-            }
-
-            public override string Execute(PlayerControllerB sender, CommandParameters parameters, out bool success)
-            {
-                success = true;
-                if (!sender.IsLocalPlayer()) return "";
-                ClearChat();
-                return PagedList("Spawnable Prefabs:", Prefabs.Keys.ToList(), parameters.IsEmpty() ? 0 : parameters.GetNumber(), 8);
-            }
+            Custom,
+            Vehicle,
+            Hazard,
         }
     }
 }
